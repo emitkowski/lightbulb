@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => {
     return {
         plugins: [
             laravel({
-                input: 'resources/js/app.js',
+                input: ['resources/js/app.js', 'resources/js/filament-echo.js'],
                 refresh: true,
             }),
             tailwindcss(),

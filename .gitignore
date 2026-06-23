@@ -29,6 +29,7 @@ Thumbs.db
 # Claude session state — developer specific, not shared
 HANDOFF.md
 .claude/settings.local.json
+.setup-state
 
 # Claude personal local rules — developer specific, not shared
 CLAUDE.local.md

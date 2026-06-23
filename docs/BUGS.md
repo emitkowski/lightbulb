@@ -6,6 +6,14 @@ _Fixed and verified bugs move to docs/BUGS_ARCHIVE.md_
 <!-- Severity: blocking=no further work | high=no workaround | medium=workaround exists | low=minor -->
 
 ## Open bugs
+
+### BUG-1 — Pre-existing Jetstream test failures (8 tests)
+- **Discovered:** 2026-06-22 via full suite run
+- **Affects:** `tests/Unit/Models/TeamTest`, `tests/Unit/Notifications/TeamInvitationNotificationTest`, `tests/Feature/ExampleTest`, `tests/Feature/PasswordConfirmationTest`
+- **Severity:** low
+- **Description:** Four test groups fail due to incompatibilities introduced when the app switched to UUID PKs and removed Jetstream teams. Specific issues: (1) `team_members.id NOT NULL` constraint on SQLite in-memory DB — team_members migration predates UUID PK policy; (2) `TeamInvitation::generate()` expects `int $invitedBy` but receives a UUID string; (3) `ExampleTest` expects a redirect from `/` but the app returns 200; (4) `UserFactory::withPersonalTeam()` method missing after Jetstream team feature changes.
+- **Blocking:** NONE — Phase 1 and Phase 2 tests all pass. These are Jetstream scaffold tests that no longer match the app.
+- **Status:** open
 <!-- BUG-N: scan this file for the highest existing number and increment by 1 -->
 <!-- Format:
 ### BUG-[N] — [Short title]
