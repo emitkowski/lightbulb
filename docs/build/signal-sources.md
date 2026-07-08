@@ -294,6 +294,7 @@ Collectively these sources answer the question: *what are businesses paying deve
 - Extremely high gap signal — buyers have already evaluated the WordPress plugin ecosystem and found it lacking
 - Crawl weekly, all active project postings
 - Signal to look for: projects described as "ongoing" or "recurring" — subscription potential
+- **Not built (2026-07-01):** Codeable's job listings are gated behind an approved-developer application (video, quiz, test project, ~4-week vetting process per Codeable's own docs). There is no public listing page or API to scrape. Revisit only if a Codeable developer account is obtained.
 
 **Laravel.io Job Board + Larajobs.com**
 - Direct signal in your ecosystem
@@ -332,6 +333,7 @@ Collectively these sources answer the question: *what are businesses paying deve
 - Client base tends to be startups and indie founders — your target customer
 - Lower volume than Upwork but higher relevance per posting
 - Crawl weekly
+- **Not built (2026-07-01):** Contra's public data surface is freelancer profiles/portfolios (for hiring freelancers), not client project postings. No Apify actor or public page exposes buyer-side "I need X built" postings the way Upwork/PeoplePerHour/Guru do. Revisit if Contra later exposes a public project-board equivalent.
 
 **r/webdev hiring flair**
 - Same audience as your target customer posting their own needs
@@ -1037,6 +1039,8 @@ Product Hunt has a public GraphQL API. Query weekly for all launches in your mon
 ---
 
 ## Layer 18 — Developer Influencer Complaints (Targeted Twitter/X)
+
+> **Implementation note (2026-07-01):** The built version of this layer (`IngestTwitterSignalsJob`) deliberately deviates from the spec below. Instead of monitoring the named account list via `from:username` queries, it runs general keyword search across all of Twitter/X (the same query-pattern style as Reddit/HN). This was a conscious tradeoff, not an oversight — general search is simpler to operate (one job shape, reused across all ingestion jobs) and gives broader category coverage than 13 fixed accounts. The tradeoff: it reintroduces exactly the noise this layer was designed to avoid (see "What to Ignore" below). If signal quality from this source turns out poor once real data is scored, rewrite `IngestTwitterSignalsJob` to do account-specific monitoring as originally specified.
 
 General Twitter/X is excluded from the system as too noisy. But targeted monitoring of a small list of influential developers is a different signal entirely. When Taylor Otwell complains about a missing tool, or Adam Wathan describes a workflow he's hacking together manually, or DHH expresses frustration with an existing solution — that's not a random tweet. It's a signal from someone whose opinion shapes what tens of thousands of developers think and buy.
 

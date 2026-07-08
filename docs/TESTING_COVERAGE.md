@@ -7,124 +7,117 @@ Legend: `[covered]` = dedicated test file, `[partial]` = some paths tested, `[no
 ---
 
 ## Coverage snapshot
-_All suites at a glance — update after every coverage run_
 
 | Suite | Tool | Overall | Threshold | Status | Last run |
 |---|---|---|---|---|---|
-| Backend | [PHPUnit / Pest] | 0% | [N]% | ○ no data | — |
-| Frontend | [Vitest / Jest] | 0% | [N]% | ○ no data | — |
-
-_Remove rows that don't apply. Add rows for additional suites (e2e, contract, etc.)._
+| Backend | PHPUnit | Lines: 86.59% | 80% | ✓ above threshold | 2026-07-07 |
 
 ---
 
-# Backend ([PHPUnit / Pest])
+# Backend (PHPUnit)
 
-**Suite:** [N] tests passing, 0 failing ([duration with coverage]).
-**Overall coverage:** 0% ([PCOV / Xdebug], measured [YYYY-MM-DD]).
+**Suite:** 295 passed, 0 failing, 7 skipped, 0 notices.
+**Overall coverage:** Classes 36.49% (27/74) · Methods 53.78% (121/225) · Lines 86.62% (2544/2937)
 
-> Re-run `[coverage command]` whenever a tracked file's coverage moves materially (≥ 2 percentage points or crosses a 100% boundary). Update the % column in the same change — stale numbers send the next engineer chasing gaps that don't exist.
+> Re-run `vendor/bin/sail php vendor/bin/phpunit --coverage-text --colors=never` whenever a tracked file's coverage moves materially.
 
 ## How to run
 
 ```bash
-[run command]           # run the suite
-[coverage command]      # per-file coverage report
+vendor/bin/sail artisan test --compact                                        # run the suite
+vendor/bin/sail php vendor/bin/phpunit --coverage-text --colors=never        # per-file coverage report
 ```
 
 ---
 
-## Area 1 — [e.g. Critical / destructive / security-load-bearing]
+## Area 1 — Core business logic (ingestion + scoring)
 
-_Files where a bug causes data loss, credential exposure, or irreversible side-effects._
-
-| File | % | Status | Notes |
+| File | Lines% | Status | Notes |
 |---|---|---|---|
-| `[path/to/file.php]` | 0% | `[none]` | [brief note — what's missing and why] |
+| `app/Services/Ingestion/IngestionService.php` | 100% | `[covered]` | All paths exercised by ingestion job tests |
+| `app/Services/Scoring/ClusteringService.php` | 100% | `[covered]` | Full coverage via ClusterSignalsJobTest |
+| `app/Services/Scoring/ScoringAgentService.php` | 98% | `[covered]` | CLI + API driver paths, stub fallback, code-fence JSON, kill conditions all tested |
+| `app/Services/Scoring/ClaudeCliRunner.php` | 96% | `[covered]` | `run()`, `buildEnv()`, `createTempHome()`, `removeTempHome()` tested via fake shell script; `removeDirectory()` covered indirectly |
+| `app/Services/Scoring/CompetitionSearchService.php` | 100% | `[covered]` | All paths: stub, success, API error, exception, empty results |
+| `app/Services/Ingestion/ApifyService.php` | 100% | `[covered]` | Dedicated `ApifyServiceTest` — asserts on actual request URL (`~` conversion), success, HTTP failure, no-token, `hasToken()` both branches |
 
-## Area 2 — [e.g. Core business logic / domain]
+## Area 2 — Ingestion jobs
 
-| File | % | Status | Notes |
+| File | Lines% | Status | Notes |
 |---|---|---|---|
-| `[path/to/file.php]` | 0% | `[none]` | [brief note] |
+| `app/Jobs/Ingestion/IngestHackerNewsSignalsJob.php` | 98% | `[covered]` | |
+| `app/Jobs/Ingestion/IngestRedditSignalsJob.php` | 84% | `[covered]` | Rate-limit (429), date-cutoff, API error, and `getAccessToken` exception path all tested |
+| `app/Jobs/Ingestion/IngestGitHubIssuesJob.php` | 97% | `[covered]` | |
+| `app/Jobs/Ingestion/IngestVSCodeMarketplaceSignalsJob.php` | 97% | `[covered]` | |
+| `app/Jobs/Ingestion/IngestStackOverflowSignalsJob.php` | 97% | `[covered]` | |
+| `app/Jobs/Ingestion/IngestProductHuntSignalsJob.php` | 99% | `[covered]` | |
+| `app/Jobs/Ingestion/IngestDevToSignalsJob.php` | 99% | `[covered]` | |
+| `app/Jobs/Ingestion/IngestAlternativesSearchJob.php` | 99% | `[covered]` | |
+| `app/Jobs/Ingestion/IngestProductRoadmapsJob.php` | 96% | `[covered]` | |
+| `app/Jobs/Ingestion/IngestCapterraBuyerGuidesJob.php` | 96% | `[covered]` | |
+| `app/Jobs/Ingestion/IngestG2ReviewsJob.php` | 99% | `[covered]` | |
+| `app/Jobs/Ingestion/IngestAppSumoSignalsJob.php` | 87% | `[covered]` | Product-level path slightly lower than review path |
+| `app/Jobs/Ingestion/IngestChromeExtensionSignalsJob.php` | 96% | `[covered]` | |
+| `app/Jobs/Ingestion/IngestGumroadSignalsJob.php` | 99% | `[covered]` | |
+| `app/Jobs/Ingestion/IngestFreelancePlatformsJob.php` | 98% | `[covered]` | |
+| `app/Jobs/Ingestion/IngestTwitterSignalsJob.php` | 87% | `[covered]` | No-token, 429 rate-limit, API error, dedup, username resolution all tested |
+| `app/Jobs/Ingestion/IngestPeoplePerHourSignalsJob.php` | 96% | `[covered]` | No-token, min-budget, max-age, dedup, run-stats all tested |
+| `app/Jobs/Ingestion/IngestGuruSignalsJob.php` | 97% | `[covered]` | Same coverage shape as PeoplePerHour plus string-range budget parsing |
+| `app/Jobs/Ingestion/IngestLaraJobsSignalsJob.php` | 87% | `[covered]` | RSS parse, max-age filter, dedup by guid, feed-error and malformed-XML failure paths all tested |
+| `app/Jobs/Ingestion/IngestIndeedSignalsJob.php` | 97% | `[covered]` | No-token, missing-url/title, max-age, dedup, run-stats all tested |
+| `app/Jobs/Ingestion/IngestLinkedInJobsSignalsJob.php` | 97% | `[covered]` | Same coverage shape as Indeed |
 
-## Area 3 — [e.g. HTTP layer / controllers / requests]
+## Area 3 — Scoring jobs
 
-| File | % | Status | Notes |
+| File | Lines% | Status | Notes |
 |---|---|---|---|
-| `[path/to/file.php]` | 0% | `[none]` | [brief note] |
+| `app/Jobs/Scoring/ClusterSignalsJob.php` | 100% | `[covered]` | |
+| `app/Jobs/Scoring/ScoreIdeaJob.php` | 93% | `[covered]` | Kill condition and gate-failed paths tested; queue middleware path not tested |
 
-_Add or remove area sections to match the project's actual code structure._
+## Area 4 — Models
+
+| File | Lines% | Status | Notes |
+|---|---|---|---|
+| `app/Models/RawSignal.php` | 89% | `[partial]` | Scopes not explicitly tested |
+| `app/Models/Idea.php` | 86% | `[partial]` | Factory states tested; computed score accessor not tested |
+| `app/Models/IngestionRun.php` | 86% | `[partial]` | |
+| `app/Models/SuccessPattern.php` | 100% | `[covered]` | |
+| `app/Models/IdeaSignal.php` | 33% | `[partial]` | Pivot model — FK relations only; no dedicated tests |
+| `app/Models/TeamInvitation.php` | 90% | `[covered]` | `generate()` and `isPending()` both tested |
+| `app/Models/User.php` | 50% | `[partial]` | Auth paths covered; `teams()` relation not tested |
+
+## Area 5 — HTTP / Filament / Providers
+
+| File | Lines% | Status | Notes |
+|---|---|---|---|
+| `app/Filament/Resources/IdeaResource.php` | 96% | `[covered]` | Smoke test covers `table()`, `form()`, `canCreate()`, `getPages()` |
+| `app/Filament/Resources/IngestionRunResource.php` | 97% | `[covered]` | Smoke test covers index page; `ListIngestionRuns` page class 100% via `ListIngestionRunsPageTest` |
+| `app/Filament/Resources/RawSignalResource.php` | 100% | `[covered]` | Index + create pages both tested |
+| `app/Http/Middleware/HandleInertiaRequests.php` | 100% | `[covered]` | |
+| `app/Providers/*` | 100% | `[covered]` | All providers boot paths exercised by suite |
+| `app/Notifications/TeamInvitationNotification.php` | 100% | `[covered]` | |
+| `app/Http/Responses/LoginResponse.php` | 100% | `[covered]` | JSON, Inertia-location, and plain-redirect branches all tested |
+| `app/Http/Responses/TwoFactorLoginResponse.php` | 100% | `[covered]` | Same coverage shape as `LoginResponse` |
 
 ---
 
-## What's left to tackle (backend)
+## What's left to tackle
 
-1. [Highest-priority gap — file, why it matters, what's blocking]
-2. [Next gap]
-3. [Integration-level files deferred pending a binary harness or external service]
-
----
-
-# Frontend ([Vitest / Jest])
-
-**Suite:** [N] tests passing, 0 failing ([duration with coverage]).
-**Overall coverage ([YYYY-MM-DD]):**
-
-| Metric | % | Hits / Total |
-|---|---|---|
-| Statements | 0% | 0 / 0 |
-| Branches | 0% | 0 / 0 |
-| Functions | 0% | 0 / 0 |
-| Lines | 0% | 0 / 0 |
-
-## How to run
-
-```bash
-[run command]           # run the suite
-[coverage command]      # full coverage report
-```
-
-## Coverage scope
-
-_List what is explicitly included in `[vitest/jest].config.js → coverage.include` — only measured files appear in the % above._
-
-- **Always in scope:** [e.g. composables, stores, utils] — target 100%
-- **Selectively in scope:** [e.g. components with non-trivial logic] — target load-bearing behaviours
-- **Out of scope:** [e.g. pages, layouts, app entry] — [reason]
-
----
-
-## Area 1 — [e.g. Composables / pure logic]
-
-| File | % Stmts | Status | Notes |
-|---|---|---|---|
-| `[path/to/file.js]` | 0% | `[none]` | [brief note] |
-
-## Area 2 — [e.g. Stores]
-
-| File | % Stmts | Status | Notes |
-|---|---|---|---|
-| `[path/to/file.js]` | 0% | `[none]` | [brief note] |
-
-## Area 3 — [e.g. Components (selective)]
-
-| File | % Stmts | Status | Notes |
-|---|---|---|---|
-| `[path/to/file.vue]` | 0% | `[none]` | [brief note] |
-
----
-
-## What's left to tackle (frontend)
-
-1. [Highest-priority gap]
-2. [Next gap]
-3. [Out of scope today — revisit when X]
+1. **`User::teams()` / `currentTeam()` relations** — not directly tested; exercised at the DB level but not via test assertions. Low priority.
 
 ---
 
 ## Run history
 
-| Date | Suite | Overall | Tests | Duration |
+| Date | Suite | Lines% | Tests | Duration |
 |---|---|---|---|---|
-| — | — | — | — | — |
+| 2026-07-07 | PHPUnit | 86.62% | 295 passed / 7 skipped / 0 notices | — |
+| 2026-07-01 | PHPUnit | 86.59% | 279 passed / 7 skipped / 0 notices | — |
+| 2026-07-01 | PHPUnit | 86.05% | 275 passed / 7 skipped / 0 notices | — |
+| 2026-07-01 | PHPUnit | 85.97% | 269 passed / 7 skipped / 0 notices | — |
+| 2026-07-01 | PHPUnit | 85.34% | 257 passed / 7 skipped / 0 notices | — |
+| 2026-06-30 | PHPUnit | 84.55% | 234 passed / 7 skipped / 0 notices | — |
+| 2026-06-28 | PHPUnit | 84.47% | 226 passed / 7 skipped / 0 notices | ~73s |
+| 2026-06-28 | PHPUnit | 72.14% | 217 passed / 7 skipped / 0 notices | 71.12s |
+| 2026-06-26 | PHPUnit | 72.14% | 210 passed / 7 skipped | — |
+| 2026-06-26 | PHPUnit | 68.73% | 192 passed / 7 skipped | 12.29s |

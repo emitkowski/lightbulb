@@ -40,7 +40,7 @@ class TeamInvitation extends Model
         return $this->accepted_at === null && $this->expires_at->isFuture();
     }
 
-    public static function generate(Team $team, string $email, int $invitedBy): static
+    public static function generate(Team $team, string $email, string $invitedBy): static
     {
         return static::create([
             'team_id'    => $team->id,

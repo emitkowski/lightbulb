@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Log;
 
 class ScoringAgentService
 {
+    public function __construct(private readonly ClaudeCliRunner $cli) {}
+
     /**
      * Run the Specificity Gate (Section 6b).
      *
@@ -16,14 +18,14 @@ class ScoringAgentService
      */
     public function runSpecificityGate(Idea $idea): array
     {
-        if (! $this->hasApiKey()) {
+        if (! $this->hasDriver()) {
             return $this->stubbedGateResult();
         }
 
         $prompt = $this->buildGatePrompt($idea);
 
         try {
-            $response = $this->callClaude($prompt, maxTokens: 800);
+            $response = $this->callClaude($prompt);
 
             return $this->parseGateResponse($response);
         } catch (\Throwable $e) {
@@ -41,7 +43,7 @@ class ScoringAgentService
      */
     public function scoreIdea(Idea $idea, array $competitionData): array
     {
-        if (! $this->hasApiKey()) {
+        if (! $this->hasDriver()) {
             return $this->stubbedScoreResult();
         }
 
@@ -49,7 +51,7 @@ class ScoringAgentService
         $prompt = $this->buildScoringPrompt($idea, $competitionData, $successPatterns);
 
         try {
-            $response = $this->callClaude($prompt, maxTokens: 2000);
+            $response = $this->callClaude($prompt);
 
             return $this->parseScoringResponse($response);
         } catch (\Throwable $e) {
@@ -59,24 +61,45 @@ class ScoringAgentService
         }
     }
 
-    private function hasApiKey(): bool
+    private function hasDriver(): bool
     {
-        return (bool) config('scoring.anthropic.api_key');
+        return match (config('scoring.driver', 'cli')) {
+            'cli'  => (bool) config('scoring.claude_cli.path'),
+            'api'  => (bool) config('scoring.anthropic.api_key'),
+            default => false,
+        };
     }
 
-    private function callClaude(string $prompt, int $maxTokens): string
+    private function callClaude(string $prompt): string
+    {
+        return match (config('scoring.driver', 'cli')) {
+            'cli'  => $this->callViaCli($prompt),
+            'api'  => $this->callViaApi($prompt),
+            default => throw new \RuntimeException('Unknown scoring driver: ' . config('scoring.driver')),
+        };
+    }
+
+    private function callViaCli(string $prompt): string
+    {
+        // Prepend the system prompt inline — the CLI --print flag has no separate system param.
+        $fullPrompt = $this->systemPrompt() . "\n\n---\n\n" . $prompt;
+
+        return $this->cli->run($fullPrompt);
+    }
+
+    private function callViaApi(string $prompt): string
     {
         $response = Http::withHeaders([
-            'x-api-key' => config('scoring.anthropic.api_key'),
+            'x-api-key'         => config('scoring.anthropic.api_key'),
             'anthropic-version' => '2023-06-01',
-            'content-type' => 'application/json',
+            'content-type'      => 'application/json',
         ])
             ->timeout(config('scoring.anthropic.timeout', 60))
             ->post(config('scoring.anthropic.base_url') . '/messages', [
-                'model' => config('scoring.anthropic.model', 'claude-sonnet-4-6'),
-                'max_tokens' => $maxTokens,
-                'system' => $this->systemPrompt(),
-                'messages' => [
+                'model'      => config('scoring.anthropic.model', 'claude-sonnet-4-6'),
+                'max_tokens' => 2000,
+                'system'     => $this->systemPrompt(),
+                'messages'   => [
                     ['role' => 'user', 'content' => $prompt],
                 ],
             ]);
@@ -190,8 +213,8 @@ PROMPT;
         }
 
         return [
-            'passed' => (bool) ($data['passed'] ?? false),
-            'answers' => $data['answers'] ?? [],
+            'passed'    => (bool) ($data['passed'] ?? false),
+            'answers'   => $data['answers'] ?? [],
             'reasoning' => $data['reasoning'] ?? '',
         ];
     }
@@ -206,26 +229,24 @@ PROMPT;
         }
 
         return [
-            'scores' => $data['scores'] ?? [],
-            'overall' => (int) ($data['overall'] ?? 0),
-            'reasoning' => $data['reasoning'] ?? [],
-            'kill_condition' => $data['kill_condition'] ?? null,
-            'kill_reasoning' => $data['kill_reasoning'] ?? null,
+            'scores'                    => $data['scores'] ?? [],
+            'overall'                   => (int) ($data['overall'] ?? 0),
+            'reasoning'                 => $data['reasoning'] ?? [],
+            'kill_condition'            => $data['kill_condition'] ?? null,
+            'kill_reasoning'            => $data['kill_reasoning'] ?? null,
             'success_pattern_confidence' => (int) ($data['success_pattern_confidence'] ?? 0),
-            'success_pattern_notes' => $data['success_pattern_notes'] ?? null,
+            'success_pattern_notes'     => $data['success_pattern_notes'] ?? null,
         ];
     }
 
     private function extractJson(string $raw): string
     {
-        // Strip markdown code fences if present
         if (preg_match('/```(?:json)?\s*([\s\S]+?)\s*```/', $raw, $matches)) {
             return $matches[1];
         }
 
-        // Find first { to last }
         $start = strpos($raw, '{');
-        $end = strrpos($raw, '}');
+        $end   = strrpos($raw, '}');
 
         if ($start !== false && $end !== false) {
             return substr($raw, $start, $end - $start + 1);
@@ -238,14 +259,14 @@ PROMPT;
     private function stubbedGateResult(): array
     {
         return [
-            'passed' => true,
+            'passed'  => true,
             'answers' => [
-                'day_one_action' => '[STUB] User signs up and connects their data source.',
-                'free_tool_comparison' => '[STUB] Free tools cannot automate this workflow at scale.',
-                'first_paying_customer' => '[STUB] A solo SaaS founder with an existing customer base.',
+                'day_one_action'          => '[STUB] User signs up and connects their data source.',
+                'free_tool_comparison'    => '[STUB] Free tools cannot automate this workflow at scale.',
+                'first_paying_customer'   => '[STUB] A solo SaaS founder with an existing customer base.',
                 'competitor_switch_reason' => '[STUB] Existing tools are too expensive or missing key features.',
             ],
-            'reasoning' => '[STUB] Gate auto-passed — ANTHROPIC_API_KEY not set.',
+            'reasoning' => '[STUB] Gate auto-passed — no scoring driver configured (set SCORING_DRIVER=cli or SCORING_DRIVER=api).',
         ];
     }
 
@@ -254,27 +275,27 @@ PROMPT;
     {
         return [
             'scores' => [
-                'problem_strength' => 60,
-                'distribution_path' => 55,
-                'competition_gap' => 60,
-                'build_feasibility' => 65,
-                'automability' => 70,
+                'problem_strength'    => 60,
+                'distribution_path'   => 55,
+                'competition_gap'     => 60,
+                'build_feasibility'   => 65,
+                'automability'        => 70,
                 'revenue_plausibility' => 55,
             ],
-            'overall' => 61,
+            'overall'   => 61,
             'reasoning' => [
-                'problem_strength' => '[STUB] Score placeholder — set ANTHROPIC_API_KEY for real scoring.',
-                'distribution_path' => '[STUB] Score placeholder.',
-                'competition_gap' => '[STUB] Score placeholder.',
-                'build_feasibility' => '[STUB] Score placeholder.',
-                'automability' => '[STUB] Score placeholder.',
+                'problem_strength'    => '[STUB] Score placeholder — configure SCORING_DRIVER for real scoring.',
+                'distribution_path'   => '[STUB] Score placeholder.',
+                'competition_gap'     => '[STUB] Score placeholder.',
+                'build_feasibility'   => '[STUB] Score placeholder.',
+                'automability'        => '[STUB] Score placeholder.',
                 'revenue_plausibility' => '[STUB] Score placeholder.',
-                'overall' => '[STUB] Weighted average placeholder.',
+                'overall'             => '[STUB] Weighted average placeholder.',
             ],
-            'kill_condition' => null,
-            'kill_reasoning' => null,
+            'kill_condition'             => null,
+            'kill_reasoning'             => null,
             'success_pattern_confidence' => 50,
-            'success_pattern_notes' => '[STUB] Pattern matching not available without API key.',
+            'success_pattern_notes'      => '[STUB] Pattern matching not available without a configured scoring driver.',
         ];
     }
 }

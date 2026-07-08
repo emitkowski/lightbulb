@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Jobs\Scoring\ScoreIdeaJob;
 use App\Models\Idea;
+use App\Services\Scoring\ClaudeCliRunner;
 use App\Services\Scoring\CompetitionSearchService;
 use App\Services\Scoring\ScoringAgentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -16,7 +17,7 @@ class ScoreIdeaJobTest extends TestCase
     private function runJob(Idea $idea): void
     {
         (new ScoreIdeaJob($idea))->handle(
-            new ScoringAgentService(),
+            new ScoringAgentService(new ClaudeCliRunner()),
             new CompetitionSearchService()
         );
     }
@@ -90,7 +91,7 @@ class ScoreIdeaJobTest extends TestCase
     public function test_idea_is_discarded_when_kill_condition_fires(): void
     {
         // Stub the agent to return a kill condition
-        $agentStub = new class extends ScoringAgentService {
+        $agentStub = new class(new ClaudeCliRunner()) extends ScoringAgentService {
             public function runSpecificityGate(Idea $idea): array
             {
                 return [
@@ -127,7 +128,7 @@ class ScoreIdeaJobTest extends TestCase
 
     public function test_idea_status_set_to_gate_failed_when_gate_does_not_pass(): void
     {
-        $agentStub = new class extends ScoringAgentService {
+        $agentStub = new class(new ClaudeCliRunner()) extends ScoringAgentService {
             public function runSpecificityGate(Idea $idea): array
             {
                 return [

@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Models\Mutators\UserMutator;
 use Database\Factories\UserFactory;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,7 +17,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Sanctum\HasApiTokens;
 
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     use HasUuids;
     use HasApiTokens;
@@ -70,5 +72,10 @@ class User extends Authenticatable
     public function currentOrOwnedTeam(): ?Team
     {
         return $this->currentTeam ?? $this->ownedTeam;
+    }
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return true;
     }
 }

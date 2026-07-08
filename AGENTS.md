@@ -30,7 +30,7 @@ Read @docs/TESTING_COVERAGE.md when writing or reviewing tests
 Read @docs/DOCKER.md when running commands or diagnosing environment issues (skip if project has no Docker)
 Read @docs/SETUP.md when helping with local dev or onboarding questions
 Read @docs/GLOSSARY.md when domain-specific terms or abbreviations are unfamiliar
-Read @docs/memory/[stack].md when writing application code, migrations, config or scripts — past surprises
+Read @docs/memory/laravel.md when writing application code, migrations, config or scripts — past surprises
 Read @docs/memory/agents.md when working on agent pipeline (skip if no agents)
 Read @docs/memory/database.md when touching the database or schema
 Read @docs/memory/testing.md when writing or debugging tests

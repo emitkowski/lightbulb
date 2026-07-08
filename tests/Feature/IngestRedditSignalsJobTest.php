@@ -107,4 +107,62 @@ class IngestRedditSignalsJobTest extends TestCase
             'status' => 'success',
         ]);
     }
+
+    public function test_logs_partial_run_when_rate_limited(): void
+    {
+        Http::fakeSequence()
+            ->push(['access_token' => 'fake-token'], 200)
+            ->push([], 429);
+
+        $this->runJob('SaaS', 'I wish there was');
+
+        $this->assertDatabaseHas('ingestion_runs', [
+            'source' => 'reddit',
+            'status' => 'partial',
+        ]);
+    }
+
+    public function test_skips_posts_older_than_max_age(): void
+    {
+        $oldPost = $this->makePost([
+            'id' => 'oldpost',
+            'created_utc' => now()->subDays(30)->timestamp,
+        ]);
+
+        $this->fakeReddit([$oldPost]);
+
+        $this->runJob('SaaS', 'I wish there was');
+
+        $this->assertDatabaseMissing('raw_signals', ['source_id' => 'oldpost']);
+        $this->assertDatabaseHas('ingestion_runs', ['status' => 'success', 'signals_inserted' => 0]);
+    }
+
+    public function test_logs_failed_run_on_api_error(): void
+    {
+        Http::fakeSequence()
+            ->push(['access_token' => 'fake-token'], 200)
+            ->push([], 503);
+
+        $this->runJob('SaaS', 'I wish there was');
+
+        $this->assertDatabaseHas('ingestion_runs', [
+            'source' => 'reddit',
+            'status' => 'failed',
+        ]);
+    }
+
+    public function test_logs_failed_run_when_token_request_throws(): void
+    {
+        Http::fake(['*' => function () {
+            throw new \RuntimeException('Connection refused');
+        }]);
+
+        $this->runJob('SaaS', 'I wish there was');
+
+        $this->assertDatabaseHas('ingestion_runs', [
+            'source' => 'reddit',
+            'status' => 'failed',
+            'error_message' => 'Failed to obtain Reddit access token',
+        ]);
+    }
 }

@@ -14,10 +14,12 @@ class IngestionStatsCommand extends Command
 {
     public function handle(): int
     {
+        $sources = RawSignal::distinct()->orderBy('source')->pluck('source');
+
         $this->info('=== Signal Counts ===');
         $this->table(
             ['Source', 'Total', 'Unprocessed', 'Flagged'],
-            collect(['reddit', 'hackernews'])->map(fn ($source) => [
+            $sources->map(fn ($source) => [
                 $source,
                 RawSignal::where('source', $source)->count(),
                 RawSignal::where('source', $source)->where('processed', false)->count(),
