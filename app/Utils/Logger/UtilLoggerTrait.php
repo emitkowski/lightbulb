@@ -2,6 +2,7 @@
 
 namespace App\Utils\Logger;
 
+use Logger;
 use Exception;
 
 trait UtilLoggerTrait
@@ -9,7 +10,7 @@ trait UtilLoggerTrait
     public function getUtilName(): string
     {
         if (!isset($this->util_name)) {
-            throw new \Exception('Util Name not set in class: ' . static::class);
+            throw new Exception('Util Name not set in class: ' . static::class);
         }
 
         return strtolower($this->util_name);
@@ -25,7 +26,7 @@ trait UtilLoggerTrait
     protected function logInfo(mixed $message, ?string $log_name = null): bool
     {
         try {
-            \Logger::writeUtil($this->getUtilName(), $message, 'info', $log_name);
+            Logger::writeUtil($this->getUtilName(), $message, 'info', $log_name);
         } catch (Exception $e) {
             $this->loggingError($e);
         }
@@ -36,7 +37,7 @@ trait UtilLoggerTrait
     protected function logWarning(mixed $message, ?string $log_name = null): bool
     {
         try {
-            \Logger::writeUtil($this->getUtilName(), $message, 'warning', $log_name);
+            Logger::writeUtil($this->getUtilName(), $message, 'warning', $log_name);
         } catch (Exception $e) {
             $this->loggingError($e);
         }
@@ -47,7 +48,7 @@ trait UtilLoggerTrait
     protected function logError(mixed $message, ?string $log_name = null): bool
     {
         try {
-            \Logger::writeUtil($this->getUtilName(), $message, 'error', $log_name);
+            Logger::writeUtil($this->getUtilName(), $message, 'error', $log_name);
         } catch (Exception $e) {
             $this->loggingError($e);
         }
@@ -57,6 +58,6 @@ trait UtilLoggerTrait
 
     private function loggingError(Exception $error): void
     {
-        \Logger::write('Logger Error: ' . $error->getMessage(), 'info', storage_path() . '/logs/logger-errors.log');
+        Logger::write('Logger Error: ' . $error->getMessage(), 'info', storage_path() . '/logs/logger-errors.log');
     }
 }

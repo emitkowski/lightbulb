@@ -2,6 +2,9 @@
 
 namespace App\Console\Commands;
 
+use App\Services\Scoring\ClusteringService;
+use App\Services\Scoring\ScoringAgentService;
+use App\Services\Scoring\CompetitionSearchService;
 use App\Jobs\Scoring\ClusterSignalsJob;
 use App\Jobs\Scoring\ScoreIdeaJob;
 use App\Models\Idea;
@@ -37,7 +40,7 @@ class ScoringRunCommand extends Command
         $this->info("Clustering {$unprocessed} unprocessed signal(s)...");
 
         $batchSize = config('scoring.pipeline.cluster_batch_size', 50);
-        (new ClusterSignalsJob($batchSize))->handle(app(\App\Services\Scoring\ClusteringService::class));
+        (new ClusterSignalsJob($batchSize))->handle(app(ClusteringService::class));
 
         $pending = Idea::where('status', 'pending')->count();
         $this->info("Clustering complete. {$pending} idea(s) pending scoring.");
@@ -59,8 +62,8 @@ class ScoringRunCommand extends Command
 
         foreach ($ideas as $idea) {
             (new ScoreIdeaJob($idea))->handle(
-                app(\App\Services\Scoring\ScoringAgentService::class),
-                app(\App\Services\Scoring\CompetitionSearchService::class)
+                app(ScoringAgentService::class),
+                app(CompetitionSearchService::class)
             );
             $bar->advance();
         }

@@ -21,7 +21,7 @@ class IngestAppSumoSignalsJobTest extends TestCase
         Config::set('ingestion.apify.token', 'fake-apify-token');
         Config::set('ingestion.apify.timeout_secs', 120);
         Config::set('ingestion.apify.memory_mbytes', 512);
-        Config::set('ingestion.apify.appsumo.actor_id', 'epctex/appsumo-scraper');
+        Config::set('ingestion.apify.appsumo.actor_id', 'shahidirfan/appsumo-scraper');
         Config::set('ingestion.apify.appsumo.max_reviews_per_category', 100);
         Config::set('ingestion.apify.appsumo.max_star_rating', 4);
         Config::set('ingestion.apify.appsumo.min_review_count', 50);
@@ -83,6 +83,43 @@ class IngestAppSumoSignalsJobTest extends TestCase
         $this->runJob('productivity-automation');
 
         $this->assertSame(0, RawSignal::where('source', 'appsumo')->count());
+    }
+
+    public function test_inserts_products_using_the_actors_actual_snake_case_field_names(): void
+    {
+        // shahidirfan/appsumo-scraper (live-verified 2026-07-08) returns review_count/
+        // description_text, not the camelCase names used elsewhere in this test file.
+        $product = [
+            'title' => 'BreezeDoc',
+            'description_text' => 'Use this dynamic electronic signature tool.',
+            'url' => 'https://appsumo.com/products/breezedoc',
+            'rating' => 3.72,
+            'review_count' => 162,
+            'price' => 19,
+        ];
+
+        Http::fakeSequence()->push([$product], 200);
+
+        $this->runJob('productivity-automation');
+
+        $this->assertDatabaseHas('raw_signals', [
+            'source' => 'appsumo',
+            'title' => 'BreezeDoc',
+            'score' => 162,
+        ]);
+    }
+
+    public function test_sends_a_keyword_search_request_to_the_actor(): void
+    {
+        Http::fakeSequence()->push([$this->makeProduct()], 200);
+
+        $this->runJob('productivity-automation');
+
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), 'shahidirfan~appsumo-scraper')
+                && ($request['keyword'] ?? null) === 'productivity automation'
+                && ($request['results_wanted'] ?? null) === 100;
+        });
     }
 
     public function test_inserts_gap_reviews_when_actor_returns_review_level_items(): void

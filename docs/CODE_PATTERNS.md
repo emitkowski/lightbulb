@@ -15,7 +15,7 @@ _Project-specific only — not general conventions_
 
 ### Serper.dev search in ingestion jobs
 **Context:** Jobs that search Google via Serper. **Pattern:** Check `config('scoring.serper.api_key')` first (reuses the same config key as the scoring pipeline). POST to `config('scoring.serper.base_url') . '/search'` with `X-API-KEY` header. Non-200 responses → `continue` to next query, log warning; overall run finishes as 'success' with whatever was found.
-**Example:** `IngestAlternativesSearchJob`, `IngestProductRoadmapsJob`
+**Example:** `IngestAlternativesSearchJob`, `IngestProductRoadmapsJob`, `IngestIndieHackersSignalsJob` (used when a source has no public API/RSS and isn't scrapable directly, e.g. a client-rendered SPA — site-restrict the Serper query instead of building a dedicated scraper)
 
 ### source_id for Serper signals
 **Context:** Deduplicating Serper search results. **Pattern:** `{tool_or_category_key}:{substr(md5($url), 0, 12)}` where the key is `strtolower($this->tool)`. Same URL found for two different tools → two different source_ids → two signals stored (both are valid gap indicators for their respective tools).

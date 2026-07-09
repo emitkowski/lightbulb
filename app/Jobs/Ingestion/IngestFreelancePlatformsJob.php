@@ -2,6 +2,8 @@
 
 namespace App\Jobs\Ingestion;
 
+use Carbon\Carbon;
+use Throwable;
 use App\Services\Ingestion\ApifyService;
 use App\Services\Ingestion\IngestionService;
 use Illuminate\Bus\Queueable;
@@ -66,7 +68,7 @@ class IngestFreelancePlatformsJob implements ShouldQueue
                 }
 
                 $postedAt = isset($item['postedAt'])
-                    ? \Carbon\Carbon::parse($item['postedAt'])
+                    ? Carbon::parse($item['postedAt'])
                     : null;
 
                 if ($postedAt && $postedAt->lt($cutoff)) {
@@ -112,7 +114,7 @@ class IngestFreelancePlatformsJob implements ShouldQueue
                 'duration_ms' => (int) ((microtime(true) - $startedAt) * 1000),
             ]);
 
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('Freelance platforms ingestion failed', [
                 'query' => $this->query,
                 'error' => $e->getMessage(),

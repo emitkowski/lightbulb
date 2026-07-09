@@ -21,7 +21,7 @@ class ListIngestionRuns extends ListRecords
                 ->label('Run Ingestion')
                 ->icon('heroicon-o-play')
                 ->color('primary')
-                ->form([
+                ->schema([
                     Select::make('source')
                         ->label('Source')
                         ->options([

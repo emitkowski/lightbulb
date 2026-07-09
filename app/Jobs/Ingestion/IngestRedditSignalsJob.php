@@ -2,6 +2,7 @@
 
 namespace App\Jobs\Ingestion;
 
+use Throwable;
 use App\Models\IngestionRun;
 use App\Services\Ingestion\IngestionService;
 use Carbon\Carbon;
@@ -113,7 +114,7 @@ class IngestRedditSignalsJob implements ShouldQueue
             $sleepMs = config('ingestion.reddit.rate_limit_sleep_ms', 1000);
             usleep($sleepMs * 1000);
 
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('Reddit ingestion failed', [
                 'subreddit' => $this->subreddit,
                 'query' => $this->query,
@@ -145,7 +146,7 @@ class IngestRedditSignalsJob implements ShouldQueue
                 ]);
 
             return $response->json('access_token');
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return null;
         }
     }

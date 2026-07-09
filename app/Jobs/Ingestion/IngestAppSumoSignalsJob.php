@@ -2,6 +2,7 @@
 
 namespace App\Jobs\Ingestion;
 
+use Throwable;
 use App\Services\Ingestion\ApifyService;
 use App\Services\Ingestion\IngestionService;
 use Illuminate\Bus\Queueable;
@@ -41,17 +42,14 @@ class IngestAppSumoSignalsJob implements ShouldQueue
         }
 
         try {
-            $actorId = config('ingestion.apify.appsumo.actor_id', 'epctex/appsumo-scraper');
+            $actorId = config('ingestion.apify.appsumo.actor_id', 'shahidirfan/appsumo-scraper');
             $maxReviews = config('ingestion.apify.appsumo.max_reviews_per_category', 100);
             $maxStarRating = config('ingestion.apify.appsumo.max_star_rating', 4);
             $minReviewCount = config('ingestion.apify.appsumo.min_review_count', 50);
 
-            $categoryUrl = "https://appsumo.com/browse/?category={$this->category}&sort=reviews-count";
-
             $items = $apifyService->runSync($actorId, [
-                'startUrls' => [['url' => $categoryUrl]],
-                'maxItems' => $maxReviews,
-                'includeReviews' => true,
+                'keyword' => str_replace('-', ' ', $this->category),
+                'results_wanted' => $maxReviews,
             ]);
 
             $found = count($items);
@@ -77,7 +75,7 @@ class IngestAppSumoSignalsJob implements ShouldQueue
                 'duration_ms' => (int) ((microtime(true) - $startedAt) * 1000),
             ]);
 
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('AppSumo ingestion failed', [
                 'category' => $this->category,
                 'error' => $e->getMessage(),
@@ -106,7 +104,7 @@ class IngestAppSumoSignalsJob implements ShouldQueue
     ): void {
         $url = $item['url'] ?? $item['productUrl'] ?? null;
         $title = $item['title'] ?? $item['name'] ?? null;
-        $reviewCount = (int) ($item['reviewCount'] ?? $item['ratingCount'] ?? 0);
+        $reviewCount = (int) ($item['reviewCount'] ?? $item['ratingCount'] ?? $item['review_count'] ?? 0);
         $avgRating = (float) ($item['avgRating'] ?? $item['rating'] ?? 5.0);
 
         if (! $url || ! $title || $reviewCount < $minReviewCount || $avgRating > $maxStarRating) {
@@ -121,7 +119,7 @@ class IngestAppSumoSignalsJob implements ShouldQueue
             'source_id' => $sourceId,
             'source_url' => $url,
             'title' => $title,
-            'content' => $item['description'] ?? $item['tagline'] ?? '',
+            'content' => $item['description'] ?? $item['tagline'] ?? $item['description_text'] ?? '',
             'author' => null,
             'score' => $reviewCount,
             'comment_count' => $reviewCount,

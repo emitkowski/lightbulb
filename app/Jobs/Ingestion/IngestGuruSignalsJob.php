@@ -2,6 +2,7 @@
 
 namespace App\Jobs\Ingestion;
 
+use Throwable;
 use App\Services\Ingestion\ApifyService;
 use App\Services\Ingestion\IngestionService;
 use Carbon\Carbon;
@@ -35,14 +36,14 @@ class IngestGuruSignalsJob implements ShouldQueue
         }
 
         try {
-            $actorId = config('ingestion.apify.guru.actor_id', 'getdataforme/guru-jobs-scraper');
+            $actorId = config('ingestion.apify.guru.actor_id', 'shahidirfan/guru-com-scraper');
             $minBudget = config('ingestion.apify.guru.min_budget', 200);
             $maxAgeDays = config('ingestion.apify.guru.max_age_days', 14);
             $itemLimit = config('ingestion.apify.guru.item_limit', 30);
 
             $items = $apifyService->runSync($actorId, [
-                'queries' => [$this->query],
-                'item_limit' => $itemLimit,
+                'keyword' => $this->query,
+                'results_wanted' => $itemLimit,
             ]);
 
             $found = count($items);
@@ -109,7 +110,7 @@ class IngestGuruSignalsJob implements ShouldQueue
                 'duration_ms' => (int) ((microtime(true) - $startedAt) * 1000),
             ]);
 
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('Guru ingestion failed', [
                 'query' => $this->query,
                 'error' => $e->getMessage(),

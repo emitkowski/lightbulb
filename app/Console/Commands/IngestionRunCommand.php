@@ -14,6 +14,7 @@ use App\Jobs\Ingestion\IngestGumroadSignalsJob;
 use App\Jobs\Ingestion\IngestGuruSignalsJob;
 use App\Jobs\Ingestion\IngestHackerNewsSignalsJob;
 use App\Jobs\Ingestion\IngestIndeedSignalsJob;
+use App\Jobs\Ingestion\IngestIndieHackersSignalsJob;
 use App\Jobs\Ingestion\IngestLaraJobsSignalsJob;
 use App\Jobs\Ingestion\IngestLinkedInJobsSignalsJob;
 use App\Jobs\Ingestion\IngestPeoplePerHourSignalsJob;
@@ -27,14 +28,14 @@ use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 
-#[Signature('ingestion:run {--source= : Run only a specific source (reddit, hackernews, github_issues, vscode_marketplace, stackoverflow, producthunt, devto, twitter, alternatives, roadmaps, capterra, g2, appsumo, chrome, gumroad, freelance, peopleperhour, guru, larajobs, indeed, linkedin)} {--limit= : Cap the number of queries/categories dispatched per source, for cheap smoke-testing} {--free-only : Only run sources that require no API key at all}')]
+#[Signature('ingestion:run {--source= : Run only a specific source (reddit, hackernews, github_issues, vscode_marketplace, stackoverflow, producthunt, devto, twitter, alternatives, roadmaps, capterra, indiehackers, g2, appsumo, chrome, gumroad, freelance, peopleperhour, guru, larajobs, indeed, linkedin)} {--limit= : Cap the number of queries/categories dispatched per source, for cheap smoke-testing} {--free-only : Only run sources that require no API key at all}')]
 #[Description('Run signal ingestion from configured sources')]
 class IngestionRunCommand extends Command
 {
     private const VALID_SOURCES = [
         'reddit', 'hackernews', 'github_issues', 'vscode_marketplace',
         'stackoverflow', 'producthunt', 'devto', 'twitter',
-        'alternatives', 'roadmaps', 'capterra',
+        'alternatives', 'roadmaps', 'capterra', 'indiehackers',
         'g2', 'appsumo', 'chrome', 'gumroad', 'freelance',
         'peopleperhour', 'guru', 'larajobs', 'indeed', 'linkedin',
     ];
@@ -109,6 +110,10 @@ class IngestionRunCommand extends Command
 
         if ($this->shouldRun('capterra', $source, $freeOnly)) {
             $this->runCapterra();
+        }
+
+        if ($this->shouldRun('indiehackers', $source, $freeOnly)) {
+            $this->runIndieHackers();
         }
 
         if ($this->shouldRun('g2', $source, $freeOnly)) {
@@ -325,6 +330,18 @@ class IngestionRunCommand extends Command
         }
 
         $this->info('Capterra buyer guides ingestion complete.');
+    }
+
+    private function runIndieHackers(): void
+    {
+        $queries = $this->applyLimit(config('ingestion.serper.indiehackers.queries', []));
+        $this->info('Dispatching ' . count($queries) . ' Indie Hackers ingestion jobs...');
+
+        foreach ($queries as $query) {
+            IngestIndieHackersSignalsJob::dispatchSync($query);
+        }
+
+        $this->info('Indie Hackers ingestion complete.');
     }
 
     private function runG2(): void

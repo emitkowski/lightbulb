@@ -2,10 +2,16 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\Filter;
+use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
+use App\Filament\Resources\IdeaResource\Pages\ListIdeas;
 use App\Filament\Resources\IdeaResource\Pages;
 use App\Models\Idea;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -14,15 +20,15 @@ class IdeaResource extends Resource
 {
     protected static ?string $model = Idea::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-light-bulb';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-light-bulb';
 
     protected static ?string $navigationLabel = 'Ideas';
 
     protected static ?int $navigationSort = 3;
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([]);
+        return $schema->components([]);
     }
 
     public static function table(Table $table): Table
@@ -30,20 +36,22 @@ class IdeaResource extends Resource
         return $table
             ->defaultSort('score_overall', 'desc')
             ->columns([
-                Tables\Columns\TextColumn::make('title')
+                TextColumn::make('title')
                     ->searchable()
                     ->limit(70)
                     ->tooltip(fn ($record) => $record->title),
 
-                Tables\Columns\BadgeColumn::make('status')
-                    ->colors([
-                        'success' => 'scored',
-                        'warning' => 'pending',
-                        'info' => 'scoring',
-                        'danger' => fn ($state) => in_array($state, ['gate_failed', 'discarded']),
-                    ]),
+                TextColumn::make('status')
+                    ->badge()
+                    ->color(fn (string $state): string => match (true) {
+                        $state === 'scored' => 'success',
+                        $state === 'pending' => 'warning',
+                        $state === 'scoring' => 'info',
+                        in_array($state, ['gate_failed', 'discarded']) => 'danger',
+                        default => 'gray',
+                    }),
 
-                Tables\Columns\TextColumn::make('score_overall')
+                TextColumn::make('score_overall')
                     ->label('Score')
                     ->numeric()
                     ->sortable()
@@ -54,61 +62,61 @@ class IdeaResource extends Resource
                         default => null,
                     }),
 
-                Tables\Columns\TextColumn::make('score_problem_strength')
+                TextColumn::make('score_problem_strength')
                     ->label('Problem')
                     ->numeric()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('score_distribution_path')
+                TextColumn::make('score_distribution_path')
                     ->label('Distribution')
                     ->numeric()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('score_competition_gap')
+                TextColumn::make('score_competition_gap')
                     ->label('Competition')
                     ->numeric()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('score_build_feasibility')
+                TextColumn::make('score_build_feasibility')
                     ->label('Feasibility')
                     ->numeric()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('score_automability')
+                TextColumn::make('score_automability')
                     ->label('Automability')
                     ->numeric()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('score_revenue_plausibility')
+                TextColumn::make('score_revenue_plausibility')
                     ->label('Revenue')
                     ->numeric()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('source_signals_count')
+                TextColumn::make('source_signals_count')
                     ->label('Signals')
                     ->numeric()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('success_pattern_confidence')
+                TextColumn::make('success_pattern_confidence')
                     ->label('Pattern %')
                     ->numeric()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                Tables\Columns\TextColumn::make('processed_at')
+                TextColumn::make('processed_at')
                     ->label('Scored')
                     ->dateTime('M j, Y')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('status')
+                SelectFilter::make('status')
                     ->options([
                         'pending' => 'Pending',
                         'scoring' => 'Scoring',
@@ -116,15 +124,15 @@ class IdeaResource extends Resource
                         'gate_failed' => 'Gate Failed',
                         'discarded' => 'Discarded',
                     ]),
-                Tables\Filters\Filter::make('strong_signal')
+                Filter::make('strong_signal')
                     ->label('Strong signal (75+)')
                     ->query(fn ($query) => $query->where('score_overall', '>=', 75)),
-                Tables\Filters\Filter::make('worth_investigating')
+                Filter::make('worth_investigating')
                     ->label('Worth investigating (60+)')
                     ->query(fn ($query) => $query->where('score_overall', '>=', 60)),
             ])
-            ->actions([
-                Tables\Actions\Action::make('view_analysis')
+            ->recordActions([
+                Action::make('view_analysis')
                     ->label('Analysis')
                     ->icon('heroicon-o-document-text')
                     ->modalContent(fn (Idea $record) => view('filament.modals.idea-analysis', ['idea' => $record]))
@@ -132,15 +140,15 @@ class IdeaResource extends Resource
                     ->modalWidth('4xl')
                     ->visible(fn (Idea $record) => $record->isScored()),
 
-                Tables\Actions\Action::make('rescore')
+                Action::make('rescore')
                     ->label('Re-score')
                     ->icon('heroicon-o-arrow-path')
                     ->requiresConfirmation()
                     ->action(fn (Idea $record) => $record->update(['status' => 'pending']))
                     ->visible(fn (Idea $record) => in_array($record->status, ['scored', 'gate_failed', 'discarded'])),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkAction::make('rescore_selected')
+            ->toolbarActions([
+                BulkAction::make('rescore_selected')
                     ->label('Re-score selected')
                     ->icon('heroicon-o-arrow-path')
                     ->requiresConfirmation()
@@ -161,7 +169,7 @@ class IdeaResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListIdeas::route('/'),
+            'index' => ListIdeas::route('/'),
         ];
     }
 }

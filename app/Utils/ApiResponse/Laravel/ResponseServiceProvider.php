@@ -2,6 +2,7 @@
 
 namespace App\Utils\ApiResponse\Laravel;
 
+use Response;
 use App\Utils\ApiResponse\Serializer\Serializer;
 use Illuminate\Support\ServiceProvider;
 use League\Fractal\Manager;
@@ -79,7 +80,7 @@ class ResponseServiceProvider extends ServiceProvider
      */
     private function registerMacro($response)
     {
-        \Response::macro('api', function () use ($response) {
+        Response::macro('api', function () use ($response) {
             return $response;
         });
     }

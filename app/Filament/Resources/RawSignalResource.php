@@ -2,10 +2,26 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\DateTimePicker;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
+use Filament\Tables\Filters\Filter;
+use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\BulkAction;
+use App\Filament\Resources\RawSignalResource\Pages\ListRawSignals;
+use App\Filament\Resources\RawSignalResource\Pages\CreateRawSignal;
+use App\Filament\Resources\RawSignalResource\Pages\EditRawSignal;
 use App\Filament\Resources\RawSignalResource\Pages;
 use App\Models\RawSignal;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -14,30 +30,30 @@ class RawSignalResource extends Resource
 {
     protected static ?string $model = RawSignal::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-signal';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-signal';
 
     protected static ?string $navigationLabel = 'Raw Signals';
 
     protected static ?int $navigationSort = 2;
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Select::make('source')
+        return $schema
+            ->components([
+                Select::make('source')
                     ->options(['reddit' => 'Reddit', 'hackernews' => 'HackerNews'])
                     ->required(),
-                Forms\Components\TextInput::make('source_id')->maxLength(255),
-                Forms\Components\TextInput::make('source_url')->maxLength(255)->url(),
-                Forms\Components\TextInput::make('title')->maxLength(255)->columnSpanFull(),
-                Forms\Components\Textarea::make('content')->required()->columnSpanFull()->rows(6),
-                Forms\Components\TextInput::make('author')->maxLength(255),
-                Forms\Components\TextInput::make('score')->numeric()->default(0),
-                Forms\Components\TextInput::make('comment_count')->numeric()->default(0),
-                Forms\Components\TextInput::make('category')->maxLength(255),
-                Forms\Components\Toggle::make('processed'),
-                Forms\Components\Toggle::make('flagged'),
-                Forms\Components\DateTimePicker::make('published_at'),
+                TextInput::make('source_id')->maxLength(255),
+                TextInput::make('source_url')->maxLength(255)->url(),
+                TextInput::make('title')->maxLength(255)->columnSpanFull(),
+                Textarea::make('content')->required()->columnSpanFull()->rows(6),
+                TextInput::make('author')->maxLength(255),
+                TextInput::make('score')->numeric()->default(0),
+                TextInput::make('comment_count')->numeric()->default(0),
+                TextInput::make('category')->maxLength(255),
+                Toggle::make('processed'),
+                Toggle::make('flagged'),
+                DateTimePicker::make('published_at'),
             ]);
     }
 
@@ -46,76 +62,78 @@ class RawSignalResource extends Resource
         return $table
             ->defaultSort('created_at', 'desc')
             ->columns([
-                Tables\Columns\BadgeColumn::make('source')
-                    ->colors([
-                        'warning' => 'reddit',
-                        'info' => 'hackernews',
-                    ]),
-                Tables\Columns\TextColumn::make('title')
+                TextColumn::make('source')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'reddit' => 'warning',
+                        'hackernews' => 'info',
+                        default => 'gray',
+                    }),
+                TextColumn::make('title')
                     ->limit(80)
                     ->searchable()
                     ->tooltip(fn (RawSignal $record) => $record->title),
-                Tables\Columns\TextColumn::make('score')
+                TextColumn::make('score')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('comment_count')
+                TextColumn::make('comment_count')
                     ->label('Comments')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('category')
+                TextColumn::make('category')
                     ->searchable(),
-                Tables\Columns\IconColumn::make('processed')->boolean(),
-                Tables\Columns\TextColumn::make('ingestionRun.query')
+                IconColumn::make('processed')->boolean(),
+                TextColumn::make('ingestionRun.query')
                     ->label('Ingestion Query')
                     ->limit(50)
                     ->placeholder('—')
                     ->toggleable(),
-                Tables\Columns\TextColumn::make('ingestionRun.created_at')
+                TextColumn::make('ingestionRun.created_at')
                     ->label('Ingested At')
                     ->dateTime()
                     ->sortable()
                     ->placeholder('—'),
-                Tables\Columns\TextColumn::make('published_at')
+                TextColumn::make('published_at')
                     ->label('Posted At')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('source')
+                SelectFilter::make('source')
                     ->options(['reddit' => 'Reddit', 'hackernews' => 'HackerNews']),
-                Tables\Filters\SelectFilter::make('ingestion_run')
+                SelectFilter::make('ingestion_run')
                     ->label('Ingestion Run')
                     ->relationship('ingestionRun', 'query'),
-                Tables\Filters\TernaryFilter::make('processed'),
-                Tables\Filters\TernaryFilter::make('flagged'),
-                Tables\Filters\Filter::make('high_score')
+                TernaryFilter::make('processed'),
+                TernaryFilter::make('flagged'),
+                Filter::make('high_score')
                     ->label('Score ≥ 100')
                     ->query(fn ($query) => $query->where('score', '>=', 100)),
             ])
-            ->actions([
-                Tables\Actions\Action::make('view_content')
+            ->recordActions([
+                Action::make('view_content')
                     ->label('View')
                     ->icon('heroicon-o-eye')
                     ->modalContent(fn (RawSignal $record) => view('filament.modals.raw-signal-content', ['signal' => $record]))
                     ->modalHeading(fn (RawSignal $record) => $record->title ?? 'Signal Content')
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Close'),
-                Tables\Actions\Action::make('toggle_flagged')
+                Action::make('toggle_flagged')
                     ->label(fn (RawSignal $record) => $record->flagged ? 'Unflag' : 'Flag')
                     ->icon('heroicon-o-flag')
                     ->color(fn (RawSignal $record) => $record->flagged ? 'gray' : 'warning')
                     ->action(fn (RawSignal $record) => $record->update(['flagged' => ! $record->flagged])),
-                Tables\Actions\Action::make('mark_processed')
+                Action::make('mark_processed')
                     ->label('Mark Processed')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->visible(fn (RawSignal $record) => ! $record->processed)
                     ->action(fn (RawSignal $record) => $record->update(['processed' => true])),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\BulkAction::make('mark_processed')
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    BulkAction::make('mark_processed')
                         ->label('Mark Processed')
                         ->icon('heroicon-o-check-circle')
                         ->action(fn ($records) => $records->each->update(['processed' => true])),
@@ -131,9 +149,9 @@ class RawSignalResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListRawSignals::route('/'),
-            'create' => Pages\CreateRawSignal::route('/create'),
-            'edit' => Pages\EditRawSignal::route('/{record}/edit'),
+            'index' => ListRawSignals::route('/'),
+            'create' => CreateRawSignal::route('/create'),
+            'edit' => EditRawSignal::route('/{record}/edit'),
         ];
     }
 }

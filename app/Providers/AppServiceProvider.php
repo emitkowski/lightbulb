@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
@@ -24,7 +25,7 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme('https');
 
             if (!config('session.secure')) {
-                \Illuminate\Support\Facades\Log::warning(
+                Log::warning(
                     'SESSION_SECURE_COOKIE is not enabled in production. Set SESSION_SECURE_COOKIE=true.'
                 );
             }

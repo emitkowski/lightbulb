@@ -10,14 +10,14 @@ Legend: `[covered]` = dedicated test file, `[partial]` = some paths tested, `[no
 
 | Suite | Tool | Overall | Threshold | Status | Last run |
 |---|---|---|---|---|---|
-| Backend | PHPUnit | Lines: 86.59% | 80% | ✓ above threshold | 2026-07-07 |
+| Backend | PHPUnit | Lines: 86.68% | 80% | ✓ above threshold | 2026-07-09 |
 
 ---
 
 # Backend (PHPUnit)
 
-**Suite:** 295 passed, 0 failing, 7 skipped, 0 notices.
-**Overall coverage:** Classes 36.49% (27/74) · Methods 53.78% (121/225) · Lines 86.62% (2544/2937)
+**Suite:** 311 passed, 0 failing, 7 skipped, 0 notices.
+**Overall coverage:** Classes 36.00% (27/75) · Methods 54.19% (123/227) · Lines 86.68% (2616/3018)
 
 > Re-run `vendor/bin/sail php vendor/bin/phpunit --coverage-text --colors=never` whenever a tracked file's coverage moves materially.
 
@@ -55,14 +55,15 @@ vendor/bin/sail php vendor/bin/phpunit --coverage-text --colors=never        # p
 | `app/Jobs/Ingestion/IngestAlternativesSearchJob.php` | 99% | `[covered]` | |
 | `app/Jobs/Ingestion/IngestProductRoadmapsJob.php` | 96% | `[covered]` | |
 | `app/Jobs/Ingestion/IngestCapterraBuyerGuidesJob.php` | 96% | `[covered]` | |
+| `app/Jobs/Ingestion/IngestIndieHackersSignalsJob.php` | 99% | `[covered]` | Layer 5, live-verified 2026-07-09; site-restricted Serper search, dedup-by-URL-across-queries tested |
 | `app/Jobs/Ingestion/IngestG2ReviewsJob.php` | 99% | `[covered]` | |
-| `app/Jobs/Ingestion/IngestAppSumoSignalsJob.php` | 87% | `[covered]` | Product-level path slightly lower than review path |
+| `app/Jobs/Ingestion/IngestAppSumoSignalsJob.php` | 86% | `[covered]` | Replacement actor (BUG-7 fix) only exercises the product path, not review path |
 | `app/Jobs/Ingestion/IngestChromeExtensionSignalsJob.php` | 96% | `[covered]` | |
 | `app/Jobs/Ingestion/IngestGumroadSignalsJob.php` | 99% | `[covered]` | |
 | `app/Jobs/Ingestion/IngestFreelancePlatformsJob.php` | 98% | `[covered]` | |
 | `app/Jobs/Ingestion/IngestTwitterSignalsJob.php` | 87% | `[covered]` | No-token, 429 rate-limit, API error, dedup, username resolution all tested |
 | `app/Jobs/Ingestion/IngestPeoplePerHourSignalsJob.php` | 96% | `[covered]` | No-token, min-budget, max-age, dedup, run-stats all tested |
-| `app/Jobs/Ingestion/IngestGuruSignalsJob.php` | 97% | `[covered]` | Same coverage shape as PeoplePerHour plus string-range budget parsing |
+| `app/Jobs/Ingestion/IngestGuruSignalsJob.php` | 99% | `[covered]` | Replacement actor (BUG-11 fix) live-verified; string-range budget parsing covered |
 | `app/Jobs/Ingestion/IngestLaraJobsSignalsJob.php` | 87% | `[covered]` | RSS parse, max-age filter, dedup by guid, feed-error and malformed-XML failure paths all tested |
 | `app/Jobs/Ingestion/IngestIndeedSignalsJob.php` | 97% | `[covered]` | No-token, missing-url/title, max-age, dedup, run-stats all tested |
 | `app/Jobs/Ingestion/IngestLinkedInJobsSignalsJob.php` | 97% | `[covered]` | Same coverage shape as Indeed |
@@ -90,9 +91,10 @@ vendor/bin/sail php vendor/bin/phpunit --coverage-text --colors=never        # p
 
 | File | Lines% | Status | Notes |
 |---|---|---|---|
-| `app/Filament/Resources/IdeaResource.php` | 96% | `[covered]` | Smoke test covers `table()`, `form()`, `canCreate()`, `getPages()` |
-| `app/Filament/Resources/IngestionRunResource.php` | 97% | `[covered]` | Smoke test covers index page; `ListIngestionRuns` page class 100% via `ListIngestionRunsPageTest` |
-| `app/Filament/Resources/RawSignalResource.php` | 100% | `[covered]` | Index + create pages both tested |
+| `app/Filament/Resources/IdeaResource.php` | 90% | `[covered]` | Smoke test covers `table()`, `form()`, `canCreate()`, `getPages()` (Filament v5) |
+| `app/Filament/Resources/IngestionRunResource.php` | 87% | `[covered]` | Smoke test covers index page; `ListIngestionRuns` page class 100% via `ListIngestionRunsPageTest` (Filament v5) |
+| `app/Filament/Resources/RawSignalResource.php` | 97% | `[covered]` | Index + create pages both tested (Filament v5) |
+| `app/Filament/Widgets/BroadcastPingWidget.php` | 100% | `[covered]` | `BroadcastPingWidgetTest` — render, ping/onPing state cycle, job dispatch, mount user id (Filament v5 / Livewire v4) |
 | `app/Http/Middleware/HandleInertiaRequests.php` | 100% | `[covered]` | |
 | `app/Providers/*` | 100% | `[covered]` | All providers boot paths exercised by suite |
 | `app/Notifications/TeamInvitationNotification.php` | 100% | `[covered]` | |
@@ -111,6 +113,9 @@ vendor/bin/sail php vendor/bin/phpunit --coverage-text --colors=never        # p
 
 | Date | Suite | Lines% | Tests | Duration |
 |---|---|---|---|---|
+| 2026-07-09 | PHPUnit | 86.68% | 311 passed / 7 skipped / 0 notices | — | (post Filament v5 upgrade; +4 BroadcastPingWidgetTest) |
+| 2026-07-09 | PHPUnit | 86.97% | 307 passed / 7 skipped / 0 notices | — | (Indie Hackers layer; pre-Filament-upgrade) |
+| 2026-07-08 | PHPUnit | 86.64% | 299 passed / 7 skipped / 0 notices | — |
 | 2026-07-07 | PHPUnit | 86.62% | 295 passed / 7 skipped / 0 notices | — |
 | 2026-07-01 | PHPUnit | 86.59% | 279 passed / 7 skipped / 0 notices | — |
 | 2026-07-01 | PHPUnit | 86.05% | 275 passed / 7 skipped / 0 notices | — |

@@ -76,7 +76,7 @@ abstract class AbstractResponse implements Response
      * Setter for status code
      *
      * @param int $statusCode
-     * @return \App\Utils\ApiResponse\AbstractResponse
+     * @return AbstractResponse
      */
     public function setStatusCode($statusCode)
     {

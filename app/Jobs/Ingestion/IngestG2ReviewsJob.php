@@ -2,6 +2,7 @@
 
 namespace App\Jobs\Ingestion;
 
+use Throwable;
 use App\Services\Ingestion\ApifyService;
 use App\Services\Ingestion\IngestionService;
 use Illuminate\Bus\Queueable;
@@ -114,7 +115,7 @@ class IngestG2ReviewsJob implements ShouldQueue
                 'duration_ms' => (int) ((microtime(true) - $startedAt) * 1000),
             ]);
 
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('G2 reviews ingestion failed', [
                 'category' => $this->category,
                 'error' => $e->getMessage(),

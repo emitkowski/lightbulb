@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands\Utility;
 
+use Exception;
 use App\Console\Commands\CommandAbstract;
 use App\Jobs\TestFailedJob;
 
@@ -32,7 +33,7 @@ class Test extends CommandAbstract
      * Execute the console command.
      *
      * @return mixed
-     * @throws \Exception
+     * @throws Exception
      */
     public function handle()
     {

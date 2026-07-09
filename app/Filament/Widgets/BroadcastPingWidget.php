@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Auth;
 
 class BroadcastPingWidget extends Widget
 {
-    protected static string $view = 'filament.widgets.broadcast-ping-widget';
+    protected string $view = 'filament.widgets.broadcast-ping-widget';
 
     protected static ?int $sort = 100;
 

@@ -2,6 +2,8 @@
 
 namespace App\Exceptions;
 
-class UserFacingException extends \RuntimeException
+use RuntimeException;
+
+class UserFacingException extends RuntimeException
 {
 }

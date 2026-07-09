@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Database\Factories\IngestionRunFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class IngestionRun extends Model
 {
-    /** @use HasFactory<\Database\Factories\IngestionRunFactory> */
+    /** @use HasFactory<IngestionRunFactory> */
     use HasFactory, HasUuids;
 
     protected $fillable = [
@@ -22,7 +24,7 @@ class IngestionRun extends Model
         'duration_ms',
     ];
 
-    public function signals(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function signals(): HasMany
     {
         return $this->hasMany(RawSignal::class);
     }

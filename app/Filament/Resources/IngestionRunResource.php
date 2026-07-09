@@ -2,9 +2,13 @@
 
 namespace App\Filament\Resources;
 
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Actions\Action;
+use App\Filament\Resources\IngestionRunResource\Pages\ListIngestionRuns;
 use App\Filament\Resources\IngestionRunResource\Pages;
 use App\Models\IngestionRun;
-use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -13,15 +17,15 @@ class IngestionRunResource extends Resource
 {
     protected static ?string $model = IngestionRun::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-arrow-down-tray';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-arrow-down-tray';
 
     protected static ?string $navigationLabel = 'Ingestion Runs';
 
     protected static ?int $navigationSort = 1;
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([]);
+        return $schema->components([]);
     }
 
     public static function table(Table $table): Table
@@ -29,55 +33,59 @@ class IngestionRunResource extends Resource
         return $table
             ->defaultSort('created_at', 'desc')
             ->columns([
-                Tables\Columns\BadgeColumn::make('source')
-                    ->colors([
-                        'warning' => 'reddit',
-                        'info' => 'hackernews',
-                    ]),
-                Tables\Columns\TextColumn::make('query')
+                TextColumn::make('source')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'reddit' => 'warning',
+                        'hackernews' => 'info',
+                        default => 'gray',
+                    }),
+                TextColumn::make('query')
                     ->limit(60)
                     ->searchable(),
-                Tables\Columns\TextColumn::make('signals_found')
+                TextColumn::make('signals_found')
                     ->label('Found')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('signals_inserted')
+                TextColumn::make('signals_inserted')
                     ->label('Inserted')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('signals_skipped')
+                TextColumn::make('signals_skipped')
                     ->label('Skipped')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\BadgeColumn::make('status')
-                    ->colors([
+                TextColumn::make('status')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
                         'success' => 'success',
-                        'danger' => 'failed',
-                        'warning' => 'partial',
-                    ]),
-                Tables\Columns\TextColumn::make('duration_ms')
+                        'failed' => 'danger',
+                        'partial' => 'warning',
+                        default => 'gray',
+                    }),
+                TextColumn::make('duration_ms')
                     ->label('Duration (ms)')
                     ->numeric()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label('Run at')
                     ->dateTime()
                     ->sortable(),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('source')
+                SelectFilter::make('source')
                     ->options(['reddit' => 'Reddit', 'hackernews' => 'HackerNews']),
-                Tables\Filters\SelectFilter::make('status')
+                SelectFilter::make('status')
                     ->options(['success' => 'Success', 'failed' => 'Failed', 'partial' => 'Partial']),
             ])
-            ->actions([
-                Tables\Actions\Action::make('view_signals')
+            ->recordActions([
+                Action::make('view_signals')
                     ->label('Signals')
                     ->icon('heroicon-o-signal')
-                    ->url(fn (IngestionRun $record) => \App\Filament\Resources\RawSignalResource::getUrl('index', ['tableFilters[ingestion_run][value]' => $record->id]))
+                    ->url(fn (IngestionRun $record) => RawSignalResource::getUrl('index', ['filters[ingestion_run][value]' => $record->id]))
                     ->visible(fn (IngestionRun $record) => $record->signals_inserted > 0),
             ])
-            ->bulkActions([]);
+            ->toolbarActions([]);
     }
 
     public static function getRelations(): array
@@ -93,7 +101,7 @@ class IngestionRunResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListIngestionRuns::route('/'),
+            'index' => ListIngestionRuns::route('/'),
         ];
     }
 }

@@ -34,7 +34,7 @@ Lightbulb is a solo-developer idea evaluation engine. It ingests signals (forum 
 | Dev.to API | Posts mentioning building/gaps | outbound |
 | Twitter/X API v2 | Recent-search tweets as pain signals (App-only bearer token) | outbound |
 | LaraJobs RSS feed | Laravel-ecosystem job postings (no auth) | outbound |
-| Serper.dev | Google search for competitors, alternatives, roadmaps, Capterra | outbound |
+| Serper.dev | Google search for competitors, alternatives, roadmaps, Capterra, Indie Hackers (site-restricted search — IH has no public API and is a client-rendered SPA) | outbound |
 | Apify | G2, AppSumo, Chrome Web Store, Gumroad, Freelance/PeoplePerHour/Guru, Indeed, LinkedIn Jobs platform scraping | outbound |
 | Claude CLI / Anthropic API | Specificity gate + idea scoring | outbound |
 
@@ -49,7 +49,7 @@ Lightbulb is a solo-developer idea evaluation engine. It ingests signals (forum 
 - No multi-user support — this is a solo developer tool. Auth scaffolding (Jetstream) is present but teams are non-functional beyond the default setup.
 - No real-time pipeline — scoring is triggered manually via Artisan commands, not on ingestion.
 - No frontend for ideas — all idea review happens in the Filament admin panel.
-- Google Trends (Layer 4), Indie Hackers (Layer 5), Stripe/Paddle/Lemon Squeezy directories (Layer 11), public Slack/Discord archives (Layer 20) are not yet built. Codeable and Contra (Layer 6b) were evaluated and ruled out — see `docs/build/signal-sources.md`.
+- Google Trends (Layer 4), Stripe/Paddle/Lemon Squeezy directories (Layer 11), public Slack/Discord archives (Layer 20) are not yet built. Codeable and Contra (Layer 6b) were evaluated and ruled out — see `docs/build/signal-sources.md`.
 
 ## Component docs
 _No subsystem docs created yet — add per-component files to docs/architecture/ as the system grows_

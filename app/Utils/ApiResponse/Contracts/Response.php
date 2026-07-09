@@ -2,6 +2,7 @@
 
 namespace App\Utils\ApiResponse\Contracts;
 
+use App\Utils\ApiResponse\AbstractResponse;
 use League\Fractal\Pagination\Cursor;
 
 interface Response
@@ -22,7 +23,7 @@ interface Response
      * Setter for status code
      *
      * @param int $statusCode
-     * @return \App\Utils\ApiResponse\AbstractResponse
+     * @return AbstractResponse
      */
     public function setStatusCode($statusCode);
 

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Facades\Logger;
 use App\Utils\Logger\MyLogger;
 use Illuminate\Foundation\AliasLoader;
 use Illuminate\Support\ServiceProvider;
@@ -15,6 +16,6 @@ class LoggerServiceProvider extends ServiceProvider
         $this->app->singleton('log_event_time', fn() => now()->format('Y-m-d_H-i-s'));
 
         $loader = AliasLoader::getInstance();
-        $loader->alias('Logger', \App\Facades\Logger::class);
+        $loader->alias('Logger', Logger::class);
     }
 }

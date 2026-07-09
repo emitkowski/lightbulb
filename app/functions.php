@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -30,7 +31,7 @@ function string_sanitize($s)
  *
  * @param array $data
  * @param bool $force_to_single_object
- * @return array|\Illuminate\Support\Collection|object
+ * @return array|Collection|object
  */
 function cc(array $data, $force_to_single_object = true)
 {
@@ -107,7 +108,7 @@ function deleteDir($dirPath)
 
     try {
         rmdir($dirPath);
-    } catch (\Exception $e) {
+    } catch (Exception $e) {
         Log::error("Failed to remove directory: " . $e->getMessage(), [
             'exception' => $e
         ]);

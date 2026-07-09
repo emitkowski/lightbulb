@@ -2,6 +2,7 @@
 
 namespace App\Utils\ApiResponse\Laravel;
 
+use Illuminate\Http\JsonResponse;
 use App\Utils\ApiResponse\AbstractResponse;
 use League\Fractal\Pagination\IlluminatePaginatorAdapter;
 use Illuminate\Contracts\Routing\ResponseFactory;
@@ -16,7 +17,7 @@ class Response extends AbstractResponse
      * @param array $array
      * @param array $headers
      * @param int $json_options
-     * @return \Illuminate\Http\JsonResponse|mixed
+     * @return JsonResponse|mixed
      */
     public function withArray(array $array, array $headers = [], $json_options = 0)
     {

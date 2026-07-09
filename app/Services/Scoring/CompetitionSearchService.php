@@ -2,6 +2,7 @@
 
 namespace App\Services\Scoring;
 
+use Throwable;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -47,7 +48,7 @@ class CompetitionSearchService
                 'summary' => $this->formatSummary($organic),
                 'stubbed' => false,
             ];
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::warning('Serper search exception', ['query' => $query, 'error' => $e->getMessage()]);
 
             return $this->stubbedResult($query);

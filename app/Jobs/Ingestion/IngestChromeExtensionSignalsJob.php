@@ -2,6 +2,7 @@
 
 namespace App\Jobs\Ingestion;
 
+use Throwable;
 use App\Services\Ingestion\ApifyService;
 use App\Services\Ingestion\IngestionService;
 use Illuminate\Bus\Queueable;
@@ -105,7 +106,7 @@ class IngestChromeExtensionSignalsJob implements ShouldQueue
                 'duration_ms' => (int) ((microtime(true) - $startedAt) * 1000),
             ]);
 
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('Chrome extension ingestion failed', [
                 'category' => $this->category,
                 'error' => $e->getMessage(),

@@ -2,6 +2,9 @@
 
 namespace App\Services\Scoring;
 
+use Throwable;
+use RuntimeException;
+use Illuminate\Support\Collection;
 use App\Models\Idea;
 use App\Models\SuccessPattern;
 use Illuminate\Support\Facades\Http;
@@ -28,7 +31,7 @@ class ScoringAgentService
             $response = $this->callClaude($prompt);
 
             return $this->parseGateResponse($response);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::warning('Specificity gate Claude call failed', ['idea_id' => $idea->id, 'error' => $e->getMessage()]);
 
             return $this->stubbedGateResult();
@@ -54,7 +57,7 @@ class ScoringAgentService
             $response = $this->callClaude($prompt);
 
             return $this->parseScoringResponse($response);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::warning('Scoring Claude call failed', ['idea_id' => $idea->id, 'error' => $e->getMessage()]);
 
             return $this->stubbedScoreResult();
@@ -75,7 +78,7 @@ class ScoringAgentService
         return match (config('scoring.driver', 'cli')) {
             'cli'  => $this->callViaCli($prompt),
             'api'  => $this->callViaApi($prompt),
-            default => throw new \RuntimeException('Unknown scoring driver: ' . config('scoring.driver')),
+            default => throw new RuntimeException('Unknown scoring driver: ' . config('scoring.driver')),
         };
     }
 
@@ -105,7 +108,7 @@ class ScoringAgentService
             ]);
 
         if (! $response->successful()) {
-            throw new \RuntimeException("Anthropic API error: {$response->status()} — {$response->body()}");
+            throw new RuntimeException("Anthropic API error: {$response->status()} — {$response->body()}");
         }
 
         return $response->json('content.0.text', '');
@@ -150,8 +153,8 @@ Respond with this JSON structure:
 PROMPT;
     }
 
-    /** @param \Illuminate\Support\Collection<int, SuccessPattern> $patterns */
-    private function buildScoringPrompt(Idea $idea, array $competitionData, \Illuminate\Support\Collection $patterns): string
+    /** @param Collection<int, SuccessPattern> $patterns */
+    private function buildScoringPrompt(Idea $idea, array $competitionData, Collection $patterns): string
     {
         $gateAnswers = json_encode($idea->specificity_gate_answers, JSON_PRETTY_PRINT);
         $patternList = $patterns->map(fn ($p) => "- {$p->product_name}: {$p->pain_solved} (${$p->mrr_amount}/mo, {$p->pricing_model})")->implode("\n");

@@ -2,6 +2,7 @@
 
 namespace App\Jobs\Scoring;
 
+use Throwable;
 use App\Models\Idea;
 use App\Services\Scoring\CompetitionSearchService;
 use App\Services\Scoring\ScoringAgentService;
@@ -91,7 +92,7 @@ class ScoreIdeaJob implements ShouldQueue
                 'score_overall' => $result['overall'],
             ]);
 
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('ScoreIdeaJob failed', ['idea_id' => $this->idea->id, 'error' => $e->getMessage()]);
             $this->idea->update(['status' => 'pending']); // reset for retry
             throw $e;

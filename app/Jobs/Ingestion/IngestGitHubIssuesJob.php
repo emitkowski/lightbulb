@@ -2,6 +2,7 @@
 
 namespace App\Jobs\Ingestion;
 
+use Throwable;
 use App\Services\Ingestion\IngestionService;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
@@ -98,7 +99,7 @@ class IngestGitHubIssuesJob implements ShouldQueue
             $stats['duration_ms'] = (int) ((microtime(true) - $startedAt) * 1000);
             $ingestionService->finishRun($run, $stats);
 
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('GitHub Issues ingestion failed', [
                 'repo' => $this->repo,
                 'error' => $e->getMessage(),

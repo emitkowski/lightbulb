@@ -2,6 +2,7 @@
 
 namespace App\Jobs\Ingestion;
 
+use Throwable;
 use App\Services\Ingestion\ApifyService;
 use App\Services\Ingestion\IngestionService;
 use Carbon\Carbon;
@@ -111,7 +112,7 @@ class IngestIndeedSignalsJob implements ShouldQueue
                 'duration_ms' => (int) ((microtime(true) - $startedAt) * 1000),
             ]);
 
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('Indeed ingestion failed', [
                 'query' => $this->query,
                 'error' => $e->getMessage(),

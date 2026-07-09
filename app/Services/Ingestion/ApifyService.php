@@ -2,6 +2,7 @@
 
 namespace App\Services\Ingestion;
 
+use RuntimeException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -41,7 +42,7 @@ class ApifyService
             ->post(self::BASE_URL . "/acts/{$urlSafeActorId}/run-sync-get-dataset-items", $input);
 
         if (! $response->successful()) {
-            throw new \RuntimeException(
+            throw new RuntimeException(
                 "Apify actor {$actorId} returned HTTP {$response->status()}"
             );
         }

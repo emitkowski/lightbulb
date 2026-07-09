@@ -7,28 +7,15 @@ _Fixed and verified bugs move to docs/BUGS_ARCHIVE.md_
 
 ## Open bugs
 
-### BUG-7 — AppSumo has no working Apify actor
-- **Discovered:** 2026-07-01 via live testing with a real Apify token; root cause confirmed via `GET /v2/actor-runs/{id}/log` on retry
-- **Affects:** `IngestAppSumoSignalsJob`, `config/ingestion.php` (`apify.appsumo.actor_id`)
-- **Severity:** medium — not fixable on our side; this is AppSumo's anti-bot defense working as intended against the actor
-- **Description:** The original `epctex/appsumo-scraper` actor doesn't exist (fabricated in an earlier session). Tried 2 real replacements live: `scraper-mind/appsumo-scraper` requires a paid rental subscription (`actor-is-not-rented`, not fixable with API credits alone). `easyapi/appsumo-product-scraper` accepts the right input shape and sometimes returns `status='success'` at the Apify level, but its headless Chrome browser crashes (`BrowserPool: Page crashed!`) every single time it navigates to an AppSumo page — confirmed via the run log: 3/3 retries crashed, 0 succeeded, 0 items scraped. This is consistent with AppSumo detecting and killing automated browser sessions.
-- **Blocking:** `appsumo` will never return real data from `easyapi/appsumo-product-scraper` — the crash is deterministic, not transient. Only fixable by renting `scraper-mind/appsumo-scraper` or finding an actor with stronger anti-detection (stealth browser fingerprinting, residential proxies specifically tuned for AppSumo).
-- **Status:** open
-
-### BUG-10 — Upwork's Apify actor (getdataforme/upwork-actor) has a broken CAPTCHA solver
-- **Discovered:** 2026-07-01, root cause confirmed via `GET /v2/actor-runs/{id}/log` after retrying the actor at the developer's request
+### BUG-10 — Upwork: no working Apify actor found yet; 3 tried, all fail or misbehave differently
+- **Discovered:** 2026-07-01 (original "broken CAPTCHA solver" diagnosis). **Revised 2026-07-08:** tried 3 actors live, each fails a different way.
 - **Affects:** `IngestFreelancePlatformsJob`, `config/ingestion.php` (`apify.freelance.actor_id`)
-- **Severity:** medium — not fixable on our side; this is a bug inside the third-party actor's own container
-- **Description:** Upwork serves a CAPTCHA on every search request. The actor tries to solve it with a browser tool called Camoufox (~713MB download), but its own container runs out of disk space mid-download every time (`Error installing Camoufox: [Errno 28] No space left on device`), so it gives up on the CAPTCHA and returns 0 results — or, in earlier attempts, retried enough times to hit our own request timeout instead. Confirmed via the actor's raw run log, not guessed. All 6 real runs against this actor today returned `SUCCEEDED` at the Apify level but 0 jobs scraped.
-- **Blocking:** `freelance` (Upwork) will never return real data from this actor until its author fixes the container's disk allocation (outside our control) or a different Upwork actor is found.
-- **Status:** open
-
-### BUG-11 — Guru's Apify actor requires a paid rental (correction: never actually confirmed working)
-- **Discovered:** 2026-07-01. **Correction (same day):** this bug was originally written as "worked live, 100 found/87 inserted, then the free trial expired mid-session" — that was a documentation mistake. The 100-found/87-inserted result belongs to the **Gumroad** live test (`IngestGumroadSignalsJob`), not Guru. Checked `ingestion_runs` directly: there is exactly one row ever recorded for `source='guru'`, and it's a failed 403. No evidence exists that this actor ever successfully returned data — its input schema was verified via documentation (WebFetch) before being wired into the job, but the job's first real execution was the `--limit=1` full-pipeline run, which failed immediately with `actor-is-not-rented`. Retried again independently — same 403, no run log exists because Apify rejects the request before execution starts.
-- **Affects:** `IngestGuruSignalsJob`, `config/ingestion.php` (`apify.guru.actor_id`)
 - **Severity:** medium
-- **Description:** `getdataforme/guru-jobs-scraper` requires a paid rental subscription to run at all (`actor-is-not-rented`, 403) — this may have been true from the very first attempt, not a trial that "expired mid-session" as originally reported.
-- **Blocking:** `guru` will log `status='failed'` every time until the developer rents the actor (`console.apify.com/actors/AlaMViRHYLFctBOpO`) or a different actor is found and verified with an actual live call before being wired in.
+- **Description:** Three actors tested live on 2026-07-08:
+  1. `getdataforme/upwork-actor` (original) — actually returned real data this time, contradicting the original "deterministic CAPTCHA crash" diagnosis (may have been transient). But its real response fields (`job_title`, `job_url`, `job_description`, snake_case) don't match the job's field mapping (`title`/`jobTitle`, `url`/`jobUrl`, camelCase) at all, and no budget/price field was present in the response — every item would be silently skipped as written. The test call also used the wrong input param names (`queries`/`item_limit`, from the old shape) which the actor didn't recognize, so it ran uncapped and cost $4.81 (PAID_ACTORS_PER_EVENT, $0.05/start + $0.035/result) — see `docs/memory/gotchas.md` 2026-07-08.
+  2. `energizing_technology/cheapest-upwork-jobs-scraper` — despite "100% success" stats, its run log shows it does zero real scraping: forwards the input payload and exits in under a second every time. A non-functional stub, not usable regardless of price.
+  3. `curious_coder/upwork-jobs-scraper` — genuinely attempts real browser-based scraping (same trusted author as the working `linkedin` source), but failed to establish a search session after 4 retries and gave up with `"Could not connect to Upwork right now"`. Suggests Upwork may currently be broadly resistant to automated access, not just hostile to one specific actor.
+- **Blocking:** Apify's $5/month free-tier cap is now exhausted (~$0.08 remaining) for the rest of the cycle (resets 2026-08-01) — no further live actor testing possible until then. Only 3 of ~159 Upwork-related actors in the Apify store have been tried; there may still be a working one, but each further attempt costs real (if now depleted) budget.
 - **Status:** open
 
 <!-- BUG-N: scan this file for the highest existing number and increment by 1 -->
@@ -43,6 +30,17 @@ _Fixed and verified bugs move to docs/BUGS_ARCHIVE.md_
 -->
 
 ## Fixed bugs
+
+### BUG-7 — AppSumo has no working Apify actor ✓
+- **Fixed:** 2026-07-08
+- **Fix:** Found and live-verified a replacement actor, `shahidirfan/appsumo-scraper` (free pricing, 100% success rate over 112 runs in the prior 30 days). Its input schema uses `keyword`/`results_wanted` rather than the old `startUrls`/`maxItems`/`includeReviews` shape, so `IngestAppSumoSignalsJob` now sends `keyword => str_replace('-', ' ', $category)`. Its output is deal/product-level only (no per-review text), so only the existing `processProduct()` path applies — added `review_count`/`description_text` as additional field-name fallbacks alongside the existing camelCase ones. Live-verified: `productivity-automation` returned 79 found / 2 inserted with real AppSumo deals (e.g. "BreezeDoc", 162 reviews, 3.72★).
+- **Covered by:** `tests/Feature/IngestAppSumoSignalsJobTest.php` (`test_inserts_products_using_the_actors_actual_snake_case_field_names`, `test_sends_a_keyword_search_request_to_the_actor`)
+
+### BUG-11 — Guru's Apify actor requires a paid rental ✓
+- **Fixed:** 2026-07-08
+- **Fix:** Found and live-verified a replacement actor, `shahidirfan/guru-com-scraper` (cheap pay-per-event: $0.0005/start + $0.00149/result; 118/118 succeeded in the prior 30 days). Its input schema uses `keyword`/`results_wanted` rather than the old `queries`/`item_limit` shape — updated `IngestGuruSignalsJob` accordingly. Its `price` field is free text (e.g. `"Fixed Price | Under $250"`), which the job's existing budget-parsing regex already handles correctly (strips non-digits, takes the value before any `-`). Live-verified: `build a custom dashboard` returned 3 found / 3 inserted with real Guru.com job postings. Minor known gap: this actor has no `id`/`postedAt` fields, so signals fall back to `md5(url)` for dedup and `now()` for `published_at` (the `max_age_days` cutoff is effectively inert, same class of gap as BUG-7's category-matching) — not blocking, revisit if precise posting dates matter later.
+- **Covered by:** `tests/Feature/IngestGuruSignalsJobTest.php` (`test_inserts_postings_using_the_actors_actual_field_shape`, `test_sends_a_keyword_search_request_to_the_actor`)
+
 <!-- Move here when resolved. Include fix summary and covering test. -->
 <!-- When this section exceeds 20 entries, archive oldest to docs/BUGS_ARCHIVE.md -->
 <!-- Format:

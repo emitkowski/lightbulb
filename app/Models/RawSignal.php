@@ -2,13 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Database\Factories\RawSignalFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class RawSignal extends Model
 {
-    /** @use HasFactory<\Database\Factories\RawSignalFactory> */
+    /** @use HasFactory<RawSignalFactory> */
     use HasFactory, HasUuids;
 
     protected $fillable = [
@@ -28,7 +30,7 @@ class RawSignal extends Model
         'published_at',
     ];
 
-    public function ingestionRun(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    public function ingestionRun(): BelongsTo
     {
         return $this->belongsTo(IngestionRun::class);
     }

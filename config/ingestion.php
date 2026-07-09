@@ -182,6 +182,21 @@ return [
             ],
             'results_per_category' => 5,
         ],
+        // Layer 5 — Indie Hackers. IH has no public API/RSS and is a client-rendered
+        // SPA (no scrapable server-rendered HTML), so this searches site:indiehackers.com
+        // via Serper.dev rather than direct crawling.
+        'indiehackers' => [
+            'queries' => [
+                'does anyone know a tool that',
+                'looking for something that',
+                'what tool do you use for',
+                'is there a way to automate',
+                'I wish there was',
+                'just hit $1K MRR',
+                'reached $1K MRR',
+            ],
+            'results_per_query' => 10,
+        ],
     ],
 
     // Layer 2 — G2/Capterra/Trustpilot, Layer 9 — AppSumo,
@@ -204,7 +219,7 @@ return [
         ],
 
         'appsumo' => [
-            'actor_id' => env('APIFY_APPSUMO_ACTOR', 'epctex/appsumo-scraper'),
+            'actor_id' => env('APIFY_APPSUMO_ACTOR', 'shahidirfan/appsumo-scraper'),
             'categories' => [
                 'productivity-automation', 'marketing-seo',
                 'business-sales', 'developer-tools',
@@ -258,7 +273,7 @@ return [
         ],
 
         'guru' => [
-            'actor_id' => env('APIFY_GURU_ACTOR', 'getdataforme/guru-jobs-scraper'),
+            'actor_id' => env('APIFY_GURU_ACTOR', 'shahidirfan/guru-com-scraper'),
             'min_budget' => 200,
             'max_age_days' => 14,
             'item_limit' => 30,

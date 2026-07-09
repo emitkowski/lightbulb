@@ -2,6 +2,7 @@
 
 namespace App\Jobs\Ingestion;
 
+use Throwable;
 use App\Services\Ingestion\ApifyService;
 use App\Services\Ingestion\IngestionService;
 use Illuminate\Bus\Queueable;
@@ -93,7 +94,7 @@ class IngestGumroadSignalsJob implements ShouldQueue
                 'duration_ms' => (int) ((microtime(true) - $startedAt) * 1000),
             ]);
 
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Log::error('Gumroad ingestion failed', [
                 'search_term' => $this->searchTerm,
                 'error' => $e->getMessage(),

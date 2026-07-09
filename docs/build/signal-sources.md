@@ -228,6 +228,8 @@ Flag any query cluster showing **>20% growth** over the trailing 90 days. Flat o
 
 ## Layer 5 — Indie Hackers & Niche Forums
 
+> **Implementation note (2026-07-09):** `IngestIndieHackersSignalsJob` searches `site:indiehackers.com` via Serper.dev rather than crawling IH directly. Indie Hackers has no public API or RSS feed, and its pages are a client-rendered SPA with no server-rendered HTML to parse (confirmed empty response from a direct fetch) — direct scraping isn't viable without a headless browser. Serper reuses the already-configured `SERPER_API_KEY` and the same pattern as Layers 3/10/19, so no new credential or infrastructure was needed.
+
 Indie Hackers is particularly valuable because people share revenue numbers, which gives you direct WTP and market size validation.
 
 ### Sources

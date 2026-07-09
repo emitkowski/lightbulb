@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use Exception;
 use App\Utils\Logger\CommandLoggerTrait;
 use Illuminate\Console\Command;
 
@@ -78,7 +79,7 @@ abstract class CommandAbstract extends Command
     public function getCommandName(): string
     {
         if (!isset($this->command_name)) {
-            throw new \Exception('Command Name not set in class: ' . static::class);
+            throw new Exception('Command Name not set in class: ' . static::class);
         }
 
         return $this->command_name;

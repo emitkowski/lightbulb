@@ -21,7 +21,7 @@ class IngestGuruSignalsJobTest extends TestCase
         Config::set('ingestion.apify.token', 'fake-apify-token');
         Config::set('ingestion.apify.timeout_secs', 120);
         Config::set('ingestion.apify.memory_mbytes', 512);
-        Config::set('ingestion.apify.guru.actor_id', 'getdataforme/guru-jobs-scraper');
+        Config::set('ingestion.apify.guru.actor_id', 'shahidirfan/guru-com-scraper');
         Config::set('ingestion.apify.guru.min_budget', 200);
         Config::set('ingestion.apify.guru.max_age_days', 14);
     }
@@ -55,6 +55,43 @@ class IngestGuruSignalsJobTest extends TestCase
             'source' => 'guru',
             'source_id' => 'guru-456',
         ]);
+    }
+
+    public function test_inserts_postings_using_the_actors_actual_field_shape(): void
+    {
+        // shahidirfan/guru-com-scraper (live-verified 2026-07-08) has no id/postedAt
+        // fields, and price is a free-text string like "Fixed Price | Under $250".
+        $posting = [
+            'title' => 'Excel Reorganize Column Data',
+            'description' => 'Need columns split into address parts.',
+            'url' => 'https://www.guru.com/jobs/excel-reorganize-column-data/2119330',
+            'price' => 'Fixed Price | Under $250',
+            'employerName' => 'Bev G',
+            'location' => 'United States',
+        ];
+
+        Http::fakeSequence()->push([$posting], 200);
+
+        $this->runJob('workflow automation tool');
+
+        $this->assertDatabaseHas('raw_signals', [
+            'source' => 'guru',
+            'title' => 'Excel Reorganize Column Data',
+            'score' => 250,
+        ]);
+    }
+
+    public function test_sends_a_keyword_search_request_to_the_actor(): void
+    {
+        Http::fakeSequence()->push([$this->makePosting()], 200);
+
+        $this->runJob('workflow automation tool');
+
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), 'shahidirfan~guru-com-scraper')
+                && ($request['keyword'] ?? null) === 'workflow automation tool'
+                && array_key_exists('results_wanted', $request->data());
+        });
     }
 
     public function test_skips_postings_below_min_budget(): void

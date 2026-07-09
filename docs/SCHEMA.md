@@ -10,7 +10,7 @@ Stores raw ingested content from all signal sources before scoring or processing
 | Column | Type | Notes |
 |---|---|---|
 | id | uuid | PK (`HasUuids`) |
-| source | varchar(50) | `reddit`, `hackernews`, `github`, `vscode`, `stackoverflow`, `producthunt`, `devto`, `twitter`, `serper_alternatives`, `serper_roadmaps`, `serper_capterra`, `g2`, `appsumo`, `chrome_webstore`, `gumroad`, `freelance`, `peopleperhour`, `guru`, `larajobs`, `indeed`, `linkedin` |
+| source | varchar(50) | `reddit`, `hackernews`, `github`, `vscode`, `stackoverflow`, `producthunt`, `devto`, `twitter`, `serper_alternatives`, `serper_roadmaps`, `serper_capterra`, `indiehackers`, `g2`, `appsumo`, `chrome_webstore`, `gumroad`, `freelance`, `peopleperhour`, `guru`, `larajobs`, `indeed`, `linkedin` |
 | source_id | varchar | Platform-specific post/item ID |
 | source_url | varchar | Original permalink |
 | title | varchar | Post/story headline |
