@@ -1,19 +1,21 @@
 # STATUS.md
-_Last updated: 2026-07-09 by Claude_
+_Last updated: 2026-07-10 by Claude_
 
 ## Current phase
-**Phase 4 — Live-verified, with corrections** (19 of 22 built sources confirmed working with real data; 1 Apify actor still unresolved — see below; only Reddit and Twitter still need keys)
+**Phase 4 — Live-verified, with corrections** (19 of 22 SaaS-idea sources confirmed working with real data; 1 Apify actor still unresolved — see below; only Reddit and Twitter still need keys). Layer 21 (Apify Actor Demand Gaps) and Layer 11 (Stripe/Paddle customer case studies) built this session as two more distinct sources — 25 total — see below for verification status of each.
 
 ## Project health
 | Indicator | Status | Detail |
 |---|---|---|
 | Build | ✓ passing | Sail + Vite functional (Filament v5 assets rebuilt) |
-| Tests | ✓ passing | 311/311 pass, 0 failures, 7 skipped, 0 notices |
-| Coverage | ✓ 86.68% | Above 80% threshold |
+| Tests | ✓ passing | 342/342 pass, 0 failures, 7 skipped, 0 notices |
+| Coverage | ✓ 87.52% | Above 80% threshold |
 | Open bugs | ⚠ 1 (medium) | BUG-10 (Upwork) — 3 actors tried, all fail differently; blocked on exhausted Apify credit until 2026-08-01, see docs/BUGS.md |
 | Blocker | none | — |
 
 ## Last meaningful progress
+- **Built and live-verified Layer 11 (Stripe/Paddle customer case studies).** New sources `ingestion:run --source=paddle_customers` and `--source=stripe_customers`. Checked each site's real HTML before building anything, rather than trusting the spec (written mid-2026): `paddle.com/customers` is server-rendered (50+ real case-study links on a plain `curl`) so `IngestPaddleCustomersJob` scrapes it directly with PHP's built-in `DOMDocument`/`DOMXPath` — no auth, no Apify, no new dependency. `stripe.com/customers` and `stripe.com/partners/directory` are both client-rendered (zero listing links on a plain `curl`) so `IngestStripeCustomersSearchJob` reuses the Layer 5 Serper site-search pattern instead, one job per category term. **Lemon Squeezy's `/discover` directory — the spec's "highest-signal source" for this layer — is not built at all: confirmed live it 404s**, with no replacement marketplace/storefront URL linked anywhere on lemonsqueezy.com, consistent with the 2024 Stripe acquisition folding it into "Stripe Managed Payments" rather than maintaining a public product directory. Live-verified both built sources end-to-end: Paddle inserted 52/52 real case studies (e.g. "Bouncer scaled revenue 5x while keeping finance operations lean with Paddle"), Stripe inserted 9/10 per category with one genuine cross-category dedup (Intercom surfaced under both `SaaS` and `subscription business` searches). 18 new tests, 98%+ coverage on both new jobs. Both sources write to `raw_signals` only per the standing ingestion architectural boundary — the spec's "Layer 7 corpus seeding" use case still needs a separate extraction step that doesn't exist yet (`success_patterns` remains 30 hand-seeded entries only). Full decision record in `docs/ARCHITECTURE_HISTORY.md` (2026-07-10), layer spec in `docs/build/signal-sources.md` Layer 11.
+- **Built and live-verified Layer 21 (Apify Actor Demand Gaps).** New source `ingestion:run --source=apify_gaps`, implemented after discussing Apify actor monetization economics with the developer. Fans out to 3 mechanisms rather than one job: `IngestGitHubIssuesJob` reused unmodified against `apify/apify-sdk-python`/`apify/apify-sdk-js`/`apify/actor-templates`; `IngestRedditSignalsJob` reused unmodified against `r/webscraping` with actor-specific queries; and one new job, `IngestApifyActorGapsJob`, which calls a new `ApifyService::getActorInfo()` method (`GET /v2/acts/{id}` — a metadata read, **not billed** against Apify usage credits, unlike `runSync()`) to check the actor IDs this app already depends on for high failure rates or poor reviews — a struggling supplier in a category Layers 1–20 already validated as real demand doubles as market-gap evidence. Verified the real API response schema live via `curl` before writing any job code (confirmed exact `stats.publicActorRunStats30Days`/`actorReviewCount`/`actorReviewRating` field names) — this also surfaced that Apify's platform-level `SUCCEEDED` status doesn't mean an actor did real work even on actors already known broken (BUG-7, BUG-10 both still show mostly `SUCCEEDED`), so failure-rate is documented as a weak supplementary signal, not primary evidence. Then ran the full command live end-to-end: GitHub piece succeeded (0 qualifying issues found — small repos, no issue cleared the 20-reaction bar), the new Apify actor-health checks succeeded against 2 real actor IDs (correctly did not flag either — one is healthy, one has only 8.65% failure rate, both below the 15% threshold), and Reddit correctly failed with "no access token" since `REDDIT_CLIENT_ID/SECRET` still aren't configured (same known gap as every other Reddit-dependent source). 13 new tests, 100% coverage on the new job and the new `ApifyService` method. Apify Store category/review crawling and Discord/forum monitoring from the spec were **not** built (same reasons as Layer 20 for Discord; Store crawling would need a new paid actor or fragile scraping). Full decision record in `docs/ARCHITECTURE_HISTORY.md` (2026-07-09), layer spec in `docs/build/signal-sources.md` Layer 21.
 - **Upgraded Filament v3.3.54 → v5.6.8 (skipping v4 as a resting point) and updated all other packages.** All routine composer/npm patch-minor updates applied first (Laravel 13.19, Inertia, Ziggy, etc.), then the two-hop Filament upgrade via its official codemods (`filament-v4`, `filament-v5`), which also pulled Livewire to v4.3.3. The v4 codemod handled most breaking changes automatically (Form→Schema signatures, action-method renames, icon type hints, header-action `->form()`→`->schema()`); manual fixes were limited to 4 `BadgeColumn`→`TextColumn::badge()` conversions and one `tableFilters[...]`→`filters[...]` URL query string. v4→v5 needed zero code changes. Verified end-to-end: 311/311 tests pass, `npm run build` succeeds, all 6 admin pages load error-free under an authenticated session, and the `BroadcastPingWidget` renders + dispatches correctly under Livewire v4 (added `BroadcastPingWidgetTest`, previously untested, now 100%). One caveat: the widget's client-side WebSocket round-trip (Echo→`$wire.onPing` over Reverb) is only manually verifiable — flagged for a browser click next time the panel is open. Full detail in `docs/ARCHITECTURE_HISTORY.md` (2026-07-09) and `docs/memory/laravel.md`.
 - **Built Layer 5 (Indie Hackers) and live-verified it.** Indie Hackers has no public API/RSS and is a client-rendered SPA (confirmed via a direct fetch returning no server-rendered HTML) — a headless browser or Apify actor would be needed for direct scraping. Instead, reused the already-established Serper.dev site-search pattern (`site:indiehackers.com`, same as Layers 3/10/19), needing no new credentials or Apify budget. Added `IngestIndieHackersSignalsJob`, wired into `ingestion:run --source=indiehackers`, and live-verified: found 2 real IH posts on first run, including one containing the exact phrase "does anyone know a tool that does X" — the target signal type. Also bumped the pipeline source count from 21 to 22 layers built.
 - **Tried 2 more Upwork actors for BUG-10, both failed differently, exhausting the remaining Apify credit.** `energizing_technology/cheapest-upwork-jobs-scraper` looked promising (100% success stats, flat per-run pricing) but its run log revealed it does zero real scraping — just echoes input and exits. `curious_coder/upwork-jobs-scraper` (same trusted author as the working `linkedin` source) genuinely attempted browser-based scraping but failed to establish a session after 4 retries, erroring with "Could not connect to Upwork right now" — suggesting Upwork may currently resist automated access broadly, not just from one bad actor. Apify's $5/month free-tier cap is now fully exhausted (~$0.08 left); no further live testing possible until it resets 2026-08-01.
@@ -36,28 +38,30 @@ _Last updated: 2026-07-09 by Claude_
 ## What's next
 1. **Run the full pipeline for real** — 19/22 sources confirmed reliably working; only `freelance`/Upwork (BUG-10) remains broken. Add the 2 remaining keys (`REDDIT_CLIENT_ID/SECRET`, `TWITTER_BEARER_TOKEN`), seed success_patterns, run `ingestion:run` across all sources + `scoring:run`, review ideas in Filament
 2. **Resolve BUG-10 (Upwork)** — blocked until Apify credit resets 2026-08-01 (or the developer adds billing). 3 of ~159 candidate actors tried and ruled out so far (see docs/BUGS.md); next attempt should check run logs for real scraping activity (not just success stats) before spending on a full test, and confirm a usable budget field exists before wiring into the job
-3. **Add remaining ingestion layers** — see table below; Layer 11 (Stripe/Paddle/Lemon Squeezy) is next since it's also free and no-auth, and enriches the Layer 7 success-pattern corpus (currently only 30 hand-seeded entries)
+3. **Add remaining ingestion layers** — see table below; Layer 4 (Google Trends) or Layer 20 (Slack/Discord) are the only two left
+4. **Build the Layer 7 extraction step** — `paddle_customers`/`stripe_customers` (and IH/Reddit MRR posts) currently land in `raw_signals` only; the spec's "extract into `success_patterns`" step for corpus seeding doesn't exist yet, so the corpus is still just 30 hand-seeded entries despite Layer 11 now producing real raw material for it
 
 ## Remaining ingestion layers (not yet built)
-_Corrected 2026-07-01 against the real `docs/build/signal-sources.md` layer numbers — the previous version of this table used wrong layer numbers. Layer 5 (Indie Hackers) built 2026-07-09._
+_Corrected 2026-07-01 against the real `docs/build/signal-sources.md` layer numbers — the previous version of this table used wrong layer numbers. Layer 5 (Indie Hackers) built 2026-07-09. Layer 21 (Apify Actor Demand Gaps) built 2026-07-09. Layer 11 (Stripe/Paddle customer case studies) built 2026-07-10 — see Metrics snapshot below for both layers' partial-build caveats._
 
 | Layer | Source | Notes |
 |---|---|---|
 | 4 | Google Trends (Pytrends) | No Laravel package; would need a Python subprocess or unofficial HTTP wrapper. Lowest signal-quality rank in the spec (2 stars) |
-| 11 | Stripe/Paddle/Lemon Squeezy directories | Used more for Layer 7 corpus enrichment than raw signal |
 | 20 | Public Slack/Discord archives | Laravel/Vue/Filament Discords; requires a Discord bot token |
 
 **Partial/ruled-out within built layers:**
 - Layer 2 (G2/Capterra/Trustpilot) — only G2 built, Trustpilot not attempted
 - Layer 6b (freelance postings) — PeoplePerHour, LaraJobs, and Guru (BUG-11 fixed 2026-07-08) reliably working; Upwork (BUG-10) still broken; r/forhire built (needs Reddit key); Codeable ruled out (gated, no public listings); Contra ruled out (no project-posting data, only freelancer profiles)
+- Layer 11 (Stripe/Paddle/Lemon Squeezy) — Paddle (direct scrape) and Stripe (Serper search) built and live-verified; Lemon Squeezy's Discover directory ruled out entirely — 404s as of 2026-07, discontinued post-Stripe-acquisition (see `docs/build/signal-sources.md` Layer 11 implementation note)
 - Layer 18 (dev influencer Twitter) — built as general keyword search, deviates from spec's account-specific monitoring (documented, developer's call)
+- Layer 21 (Apify Actor Demand Gaps) — GitHub + Reddit + actor-health check built and live-verified; Apify Store category/review crawl and Discord/forum monitoring not built (see `docs/build/signal-sources.md` Layer 21 implementation note)
 
 ## Metrics snapshot
 | Metric | Value | Trend |
 |---|---|---|
-| Test count | 307 passing / 7 skipped | +23 this session |
-| Coverage | 86.97% lines | up from 86.59% |
-| Open bugs | 1 (medium, non-blocking) | -2 this session (BUG-7 AppSumo, BUG-11 Guru fixed) |
+| Test count | 342 passing / 7 skipped | +18 this session |
+| Coverage | 87.52% lines | up from 87.03% |
+| Open bugs | 1 (medium, non-blocking) | unchanged this session |
 | Blocking bugs | 0 | — |
-| Ingestion layers | 22 built, **19/22 confirmed reliably working live** | up from 21 built/16 working after fixing BUG-7, BUG-11, and building Layer 5 (Indie Hackers) |
+| Ingestion layers | 25 built, **19/22 SaaS-idea sources confirmed reliably working live** (Layers 11 and 21 tracked separately — see notes above) | up from 23 built |
 | Milestones complete | 3/N | Phase 1 + Phase 2 + Phase 3 ingestion |

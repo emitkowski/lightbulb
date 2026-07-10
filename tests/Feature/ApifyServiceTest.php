@@ -68,4 +68,45 @@ class ApifyServiceTest extends TestCase
 
         $this->assertFalse((new ApifyService())->hasToken());
     }
+
+    public function test_get_actor_info_converts_slash_actor_id_to_tilde_in_url(): void
+    {
+        Http::fake(['*' => Http::response(['data' => ['title' => 'Some Actor']], 200)]);
+
+        (new ApifyService())->getActorInfo('username/actor-name');
+
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), '/acts/username~actor-name')
+                && ! str_contains($request->url(), 'username/actor-name')
+                && $request->method() === 'GET';
+        });
+    }
+
+    public function test_get_actor_info_returns_the_data_object_on_success(): void
+    {
+        Http::fake(['*' => Http::response(['data' => ['title' => 'Some Actor', 'stats' => ['totalRuns' => 10]]], 200)]);
+
+        $info = (new ApifyService())->getActorInfo('someone/actor');
+
+        $this->assertSame(['title' => 'Some Actor', 'stats' => ['totalRuns' => 10]], $info);
+    }
+
+    public function test_get_actor_info_returns_empty_array_when_no_token(): void
+    {
+        Config::set('ingestion.apify.token', null);
+
+        $info = (new ApifyService())->getActorInfo('someone/actor');
+
+        $this->assertSame([], $info);
+        Http::assertNothingSent();
+    }
+
+    public function test_get_actor_info_throws_on_http_failure(): void
+    {
+        Http::fake(['*' => Http::response([], 404)]);
+
+        $this->expectException(\RuntimeException::class);
+
+        (new ApifyService())->getActorInfo('someone/actor');
+    }
 }

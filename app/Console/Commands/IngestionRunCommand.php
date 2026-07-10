@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Jobs\Ingestion\IngestAlternativesSearchJob;
+use App\Jobs\Ingestion\IngestApifyActorGapsJob;
 use App\Jobs\Ingestion\IngestAppSumoSignalsJob;
 use App\Jobs\Ingestion\IngestCapterraBuyerGuidesJob;
 use App\Jobs\Ingestion\IngestChromeExtensionSignalsJob;
@@ -17,18 +18,20 @@ use App\Jobs\Ingestion\IngestIndeedSignalsJob;
 use App\Jobs\Ingestion\IngestIndieHackersSignalsJob;
 use App\Jobs\Ingestion\IngestLaraJobsSignalsJob;
 use App\Jobs\Ingestion\IngestLinkedInJobsSignalsJob;
+use App\Jobs\Ingestion\IngestPaddleCustomersJob;
 use App\Jobs\Ingestion\IngestPeoplePerHourSignalsJob;
 use App\Jobs\Ingestion\IngestProductHuntSignalsJob;
 use App\Jobs\Ingestion\IngestProductRoadmapsJob;
 use App\Jobs\Ingestion\IngestRedditSignalsJob;
 use App\Jobs\Ingestion\IngestStackOverflowSignalsJob;
+use App\Jobs\Ingestion\IngestStripeCustomersSearchJob;
 use App\Jobs\Ingestion\IngestTwitterSignalsJob;
 use App\Jobs\Ingestion\IngestVSCodeMarketplaceSignalsJob;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 
-#[Signature('ingestion:run {--source= : Run only a specific source (reddit, hackernews, github_issues, vscode_marketplace, stackoverflow, producthunt, devto, twitter, alternatives, roadmaps, capterra, indiehackers, g2, appsumo, chrome, gumroad, freelance, peopleperhour, guru, larajobs, indeed, linkedin)} {--limit= : Cap the number of queries/categories dispatched per source, for cheap smoke-testing} {--free-only : Only run sources that require no API key at all}')]
+#[Signature('ingestion:run {--source= : Run only a specific source (reddit, hackernews, github_issues, vscode_marketplace, stackoverflow, producthunt, devto, twitter, alternatives, roadmaps, capterra, indiehackers, g2, appsumo, chrome, gumroad, freelance, peopleperhour, guru, larajobs, indeed, linkedin, apify_gaps, paddle_customers, stripe_customers)} {--limit= : Cap the number of queries/categories dispatched per source, for cheap smoke-testing} {--free-only : Only run sources that require no API key at all}')]
 #[Description('Run signal ingestion from configured sources')]
 class IngestionRunCommand extends Command
 {
@@ -38,6 +41,7 @@ class IngestionRunCommand extends Command
         'alternatives', 'roadmaps', 'capterra', 'indiehackers',
         'g2', 'appsumo', 'chrome', 'gumroad', 'freelance',
         'peopleperhour', 'guru', 'larajobs', 'indeed', 'linkedin',
+        'apify_gaps', 'paddle_customers', 'stripe_customers',
     ];
 
     /**
@@ -46,7 +50,7 @@ class IngestionRunCommand extends Command
      */
     private const FREE_SOURCES = [
         'hackernews', 'github_issues', 'vscode_marketplace',
-        'stackoverflow', 'devto', 'larajobs',
+        'stackoverflow', 'devto', 'larajobs', 'paddle_customers',
     ];
 
     public function handle(): int
@@ -154,6 +158,18 @@ class IngestionRunCommand extends Command
 
         if ($this->shouldRun('linkedin', $source, $freeOnly)) {
             $this->runLinkedIn();
+        }
+
+        if ($this->shouldRun('apify_gaps', $source, $freeOnly)) {
+            $this->runApifyGaps();
+        }
+
+        if ($this->shouldRun('paddle_customers', $source, $freeOnly)) {
+            $this->runPaddleCustomers();
+        }
+
+        if ($this->shouldRun('stripe_customers', $source, $freeOnly)) {
+            $this->runStripeCustomers();
         }
 
         return self::SUCCESS;
@@ -457,5 +473,49 @@ class IngestionRunCommand extends Command
         }
 
         $this->info('LinkedIn ingestion complete.');
+    }
+
+    private function runApifyGaps(): void
+    {
+        $repos = $this->applyLimit(config('ingestion.apify_gaps.github_repositories', []));
+        $queries = $this->applyLimit(config('ingestion.apify_gaps.reddit_queries', []));
+        $subreddit = config('ingestion.apify_gaps.reddit_subreddit');
+        $actorIds = $this->applyLimit(config('ingestion.apify_gaps.monitor_actor_ids', []));
+
+        $total = count($repos) + count($queries) + count($actorIds);
+        $this->info("Dispatching {$total} Apify Actor Demand Gaps ingestion jobs...");
+
+        foreach ($repos as $repo) {
+            IngestGitHubIssuesJob::dispatchSync($repo);
+        }
+
+        foreach ($queries as $query) {
+            IngestRedditSignalsJob::dispatchSync($subreddit, $query);
+        }
+
+        foreach ($actorIds as $actorId) {
+            IngestApifyActorGapsJob::dispatchSync($actorId);
+        }
+
+        $this->info('Apify Actor Demand Gaps ingestion complete.');
+    }
+
+    private function runPaddleCustomers(): void
+    {
+        $this->info('Dispatching Paddle customers ingestion job...');
+        IngestPaddleCustomersJob::dispatchSync();
+        $this->info('Paddle customers ingestion complete.');
+    }
+
+    private function runStripeCustomers(): void
+    {
+        $categories = $this->applyLimit(config('ingestion.serper.stripe_customers.categories', []));
+        $this->info('Dispatching ' . count($categories) . ' Stripe customers ingestion jobs...');
+
+        foreach ($categories as $category) {
+            IngestStripeCustomersSearchJob::dispatchSync($category);
+        }
+
+        $this->info('Stripe customers ingestion complete.');
     }
 }

@@ -10,14 +10,14 @@ Legend: `[covered]` = dedicated test file, `[partial]` = some paths tested, `[no
 
 | Suite | Tool | Overall | Threshold | Status | Last run |
 |---|---|---|---|---|---|
-| Backend | PHPUnit | Lines: 86.68% | 80% | ✓ above threshold | 2026-07-09 |
+| Backend | PHPUnit | Lines: 87.52% | 80% | ✓ above threshold | 2026-07-10 |
 
 ---
 
 # Backend (PHPUnit)
 
-**Suite:** 311 passed, 0 failing, 7 skipped, 0 notices.
-**Overall coverage:** Classes 36.00% (27/75) · Methods 54.19% (123/227) · Lines 86.68% (2616/3018)
+**Suite:** 342 passed, 0 failing, 7 skipped, 0 notices.
+**Overall coverage:** Classes 35.90% (28/78) · Methods 54.70% (128/234) · Lines 87.52% (2834/3238)
 
 > Re-run `vendor/bin/sail php vendor/bin/phpunit --coverage-text --colors=never` whenever a tracked file's coverage moves materially.
 
@@ -39,7 +39,7 @@ vendor/bin/sail php vendor/bin/phpunit --coverage-text --colors=never        # p
 | `app/Services/Scoring/ScoringAgentService.php` | 98% | `[covered]` | CLI + API driver paths, stub fallback, code-fence JSON, kill conditions all tested |
 | `app/Services/Scoring/ClaudeCliRunner.php` | 96% | `[covered]` | `run()`, `buildEnv()`, `createTempHome()`, `removeTempHome()` tested via fake shell script; `removeDirectory()` covered indirectly |
 | `app/Services/Scoring/CompetitionSearchService.php` | 100% | `[covered]` | All paths: stub, success, API error, exception, empty results |
-| `app/Services/Ingestion/ApifyService.php` | 100% | `[covered]` | Dedicated `ApifyServiceTest` — asserts on actual request URL (`~` conversion), success, HTTP failure, no-token, `hasToken()` both branches |
+| `app/Services/Ingestion/ApifyService.php` | 100% | `[covered]` | Dedicated `ApifyServiceTest` — asserts on actual request URL (`~` conversion), success, HTTP failure, no-token, `hasToken()` both branches, plus `getActorInfo()` (Layer 21) with the same coverage shape |
 
 ## Area 2 — Ingestion jobs
 
@@ -67,6 +67,9 @@ vendor/bin/sail php vendor/bin/phpunit --coverage-text --colors=never        # p
 | `app/Jobs/Ingestion/IngestLaraJobsSignalsJob.php` | 87% | `[covered]` | RSS parse, max-age filter, dedup by guid, feed-error and malformed-XML failure paths all tested |
 | `app/Jobs/Ingestion/IngestIndeedSignalsJob.php` | 97% | `[covered]` | No-token, missing-url/title, max-age, dedup, run-stats all tested |
 | `app/Jobs/Ingestion/IngestLinkedInJobsSignalsJob.php` | 97% | `[covered]` | Same coverage shape as Indeed |
+| `app/Jobs/Ingestion/IngestApifyActorGapsJob.php` | 100% | `[covered]` | Layer 21, live-verified against real actor metadata (see docs/ARCHITECTURE_HISTORY.md 2026-07-09); failure-rate flag, review-rating flag, min-run-volume floor, no-token, HTTP-error, and same-week dedup all tested. The GitHub/Reddit slices of this layer reuse `IngestGitHubIssuesJob`/`IngestRedditSignalsJob` unchanged — no new coverage needed there |
+| `app/Jobs/Ingestion/IngestPaddleCustomersJob.php` | 98% | `[covered]` | Layer 11, live-verified 2026-07-10 (52/52 real case studies inserted). DOM dedup-by-longest-text, index-link skip, malformed-HTML, HTTP-error, and generic-exception paths all tested |
+| `app/Jobs/Ingestion/IngestStripeCustomersSearchJob.php` | 99% | `[covered]` | Layer 11, live-verified 2026-07-10 (9/10 inserted per category, 1 real cross-category dedup). Same coverage shape as `IngestIndieHackersSignalsJob` plus an index-page skip test |
 
 ## Area 3 — Scoring jobs
 
@@ -113,6 +116,8 @@ vendor/bin/sail php vendor/bin/phpunit --coverage-text --colors=never        # p
 
 | Date | Suite | Lines% | Tests | Duration |
 |---|---|---|---|---|
+| 2026-07-10 | PHPUnit | 87.52% | 342 passed / 7 skipped / 0 notices | — | (Layer 11 — Stripe/Paddle customer case studies; +18 tests) |
+| 2026-07-09 | PHPUnit | 87.03% | 324 passed / 7 skipped / 0 notices | — | (Layer 21 — Apify Actor Demand Gaps; +13 tests) |
 | 2026-07-09 | PHPUnit | 86.68% | 311 passed / 7 skipped / 0 notices | — | (post Filament v5 upgrade; +4 BroadcastPingWidgetTest) |
 | 2026-07-09 | PHPUnit | 86.97% | 307 passed / 7 skipped / 0 notices | — | (Indie Hackers layer; pre-Filament-upgrade) |
 | 2026-07-08 | PHPUnit | 86.64% | 299 passed / 7 skipped / 0 notices | — |

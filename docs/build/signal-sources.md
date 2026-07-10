@@ -528,6 +528,8 @@ The most valuable pattern: a feature with 200+ votes sitting at "planned" for 18
 
 ## Layer 11 — Stripe & Payment Processor Ecosystems
 
+> **Implementation note (2026-07-10):** Built as two sources — `ingestion:run --source=paddle_customers` and `--source=stripe_customers`. Verified each site's real rendering live before building against it, rather than assuming from this spec (written mid-2026): `paddle.com/customers` is server-rendered (50+ real case-study links in a plain GET) and is scraped directly with `DOMDocument`/`DOMXPath`, no Apify/auth needed. `stripe.com/customers` and `stripe.com/partners/directory` are both client-rendered (zero listing links in a plain GET) — this reuses the Layer 5 Serper site-search pattern instead, one job per category term (`SaaS`, `subscription business`, `marketplace platform`, `creator platform`, `usage-based billing`, `vertical software`). **Lemon Squeezy's `/discover` directory is not built at all** — it 404s as of 2026-07 and no replacement marketplace-browsing URL is linked from lemonsqueezy.com anymore, most likely folded away as Lemon Squeezy is absorbed into Stripe's own "Stripe Managed Payments" product following the 2024 acquisition. Live-verified both built sources with real data: Paddle returned 52/52 inserted on first run; Stripe returned 9/10 inserted per category (the 1 skip was a real cross-category dedup — Intercom's case study surfaced under both `SaaS` and `subscription business`). Both write to `raw_signals` only, per the standard ingestion architectural boundary — the Layer 7 corpus-seeding use case (extracting these into `success_patterns`) is a separate, not-yet-automated step (see Layer 7 below; `success_patterns` is currently only hand-seeded).
+
 Stripe, Paddle, and Lemon Squeezy all maintain public directories of products built on their platforms. These aren't just marketing pages — they're curated lists of working businesses with verified payment integration, which means verified revenue activity.
 
 ### Sources
@@ -795,16 +797,18 @@ Not all sources are equal. When signals conflict or the agent needs to weight in
 | 13 | Same project type across 3+ freelance platforms in 30 days | 6b | ⭐⭐⭐⭐ |
 | 14 | Codeable / Laravel.io / Larajobs recurring project pattern | 6b | ⭐⭐⭐⭐ |
 | 15 | Public Slack/Discord — 3+ reactions, 5+ replies | 20 | ⭐⭐⭐⭐ |
-| 16 | "Alternatives to X" search volume growing | 3 | ⭐⭐⭐ |
-| 17 | Layer 7 pattern confirmed (3+ similar products hit $1K MRR recently) | 7 | ⭐⭐⭐ |
-| 18 | Upwork/PeoplePerHour/Guru single-platform project pattern | 6b | ⭐⭐⭐ |
-| 19 | Indie Hackers "looking to hire" — SaaS ruled out explicitly | 5 | ⭐⭐⭐ |
-| 20 | Hacker News "Ask HN" with 50+ points | 13 | ⭐⭐⭐ |
-| 21 | Indie Hackers "Ask IH" with engagement | 5 | ⭐⭐⭐ |
-| 22 | Lemon Squeezy / Paddle — category with few products + poor reviews | 11 | ⭐⭐⭐ |
-| 23 | Google Trends growing cluster | 4 | ⭐⭐ |
-| 24 | Indeed / LinkedIn job board manual process descriptions | 6 | ⭐⭐ |
-| 25 | AI-generated idea (this system's own output) | — | ⭐ |
+| 16 | Apify actor with 30%+ run failure rate + matching forum/Reddit request | 21 | ⭐⭐⭐⭐ |
+| 17 | "Alternatives to X" search volume growing | 3 | ⭐⭐⭐ |
+| 18 | Layer 7 pattern confirmed (3+ similar products hit $1K MRR recently) | 7 | ⭐⭐⭐ |
+| 19 | Upwork/PeoplePerHour/Guru single-platform project pattern | 6b | ⭐⭐⭐ |
+| 20 | Indie Hackers "looking to hire" — SaaS ruled out explicitly | 5 | ⭐⭐⭐ |
+| 21 | Hacker News "Ask HN" with 50+ points | 13 | ⭐⭐⭐ |
+| 22 | Indie Hackers "Ask IH" with engagement | 5 | ⭐⭐⭐ |
+| 23 | Paddle / Stripe customer case study mentioning a manual process replaced | 11 | ⭐⭐⭐ |
+| 24 | r/webscraping single request thread, no matching broken-actor evidence | 21 | ⭐⭐⭐ |
+| 25 | Google Trends growing cluster | 4 | ⭐⭐ |
+| 26 | Indeed / LinkedIn job board manual process descriptions | 6 | ⭐⭐ |
+| 27 | AI-generated idea (this system's own output) | — | ⭐ |
 
 ---
 
@@ -1154,6 +1158,54 @@ Many indie hacker, SaaS founder, and developer communities have public archives 
 
 ### Why This Differs from Reddit
 Reddit is public by default and heavily indexed. Slack/Discord communities are semi-private and almost never systematically mined for idea signals. The people in these communities have higher signal-to-noise than general Reddit — they've opted into a specific community around a topic they care about deeply. A question in the Laravel Discord gets fewer responses than a Laravel subreddit post, but the responses are from more experienced practitioners with stronger opinions.
+
+---
+
+## Layer 21 — Apify Actor Demand Gaps
+
+> **Meta-layer note (added 2026-07-09):** This layer surfaces demand for a different product type than Layers 1–20 — a paid Apify Store actor (Pay-Per-Event revenue share, ~80% to the developer) rather than a subscription SaaS product. Per developer decision, it feeds the standard ingestion → clustering → scoring pipeline unmodified. The existing rubric's MRR/distribution assumptions won't map perfectly onto actor economics (no monthly subscription, revenue is per-run/per-result, "build feasibility" is usually days not weeks) — revisit the rubric or add actor-specific scoring adjustments if ideas from this layer consistently produce nonsensical scores.
+
+> **Implementation note (2026-07-09):** Built as `ingestion:run --source=apify_gaps`, fanning out to three mechanisms rather than one dedicated job. GitHub (`apify/apify-sdk-python`, `apify/apify-sdk-js`, `apify/actor-templates`) and Reddit (`r/webscraping`, actor-specific queries) reuse `IngestGitHubIssuesJob`/`IngestRedditSignalsJob` unmodified — their signals land under the existing `github_issues`/`reddit` source values, distinguishable by `category`. The Apify Store slice was **not** built as a full category/review crawl (that needs either a new paid Apify actor or fragile ad-hoc scraping with no stable API) — instead `IngestApifyActorGapsJob` checks `ApifyService::getActorInfo()` (a new, unbilled `GET /v2/acts/{id}` metadata read) against the actor IDs this app already depends on, flagging high failure rates or poor reviews. Live-tested against 3 real actor IDs before writing any job code, per this project's standing rule to verify real API schemas first — confirmed the exact `stats.publicActorRunStats30Days` / `stats.actorReviewCount` / `stats.actorReviewRating` field names, and confirmed the known BUG-7/BUG-10 actors still report mostly `SUCCEEDED` despite being broken, so failure-rate is documented as a weak supplementary signal, not primary evidence. Discord/forum monitoring was not built — same bot-infra constraint as Layer 20. See `docs/ARCHITECTURE_HISTORY.md` (2026-07-09) for the full decision record.
+
+Apify's own ecosystem is a signal source about itself: people asking for scrapers that don't exist, and existing actors that are broken, abandoned, or badly misconfigured enough that a working replacement is a viable paid product. This project has direct, first-hand evidence of the second pattern — three separate ingestion-layer actors (AppSumo, Guru, Upwork) turned out to be broken or non-functional despite being live listings on the Store (see `docs/BUGS.md`, `docs/BUGS_ARCHIVE.md`). A broken or absent actor for a site with real scraping demand is both a validated gap *and* a validated failure of current supply — a stronger signal than most Layer 1–20 sources, because the "competition" has already tried publicly and failed.
+
+### Sources
+
+**Apify Store itself**
+- apify.store — browse categories, look for well-known sites/platforms with 0–2 actors covering them, or none at all
+- Actor pages with 1–2 star reviews or poor run-success stats — mirrors the Layer 2 (G2) pattern: bad reviews on an existing actor describe exactly what's missing or broken
+- `publicActorRunStats30Days` via the Apify API — a high failure rate on an actor with meaningful run volume is direct evidence of unmet demand with a live but broken attempt already in market
+
+**Apify community forum / Discord**
+- community.apify.com and the Apify Discord — "is there an actor for X", "looking for a scraper that does X", actor request threads
+- Crawl weekly; Discord requires bot-based read access (same constraint as Layer 20)
+
+**r/webscraping (Reddit)**
+- Highest-signal subreddit for this layer — a scraping-specific audience already comparing tools and actors
+- Query patterns (via Reddit API, same mechanism as Layer 1):
+```
+"is there an apify actor for"
+"looking for a scraper for"
+"does anyone have a scraper that"
+"need a scraper for"
+"scraper for [site] not working"
+"apify actor for"
+```
+
+**GitHub — apify org repos**
+- github.com/apify/apify-sdk-python, apify/apify-sdk-js, apify/actor-templates issue trackers — template/feature requests for uncovered sites, same filter pattern as Layer 8 (👍 reaction count, issue age)
+
+### Signal Filters
+- Reddit/Discord: 5+ upvotes/reactions or 3+ replies — meaningful ask, not a one-off
+- Apify Store actor reviews: 2 stars or below, review text describing a specific missing capability or repeated failure
+- Actor run-stats failure rate > 30% over the trailing 30 days on an actor with 100+ runs — actively used but not working, the strongest sub-signal in this layer
+- Exclude single-run or zero-review actors — no evidence of real demand yet, just an untested listing
+
+### Signal to Look For
+The compound pattern is the highest-value output of this layer: a site/platform with (a) an existing actor that has a high failure rate or bad reviews, **and** (b) forum/Reddit posts asking for a working scraper for the same site. That combination means demand is proven, current supply has already been tried and rejected, and building a working replacement is a direct, addressable gap — not a hypothetical one.
+
+### Crawl Frequency
+Weekly for Reddit/Discord query patterns. Monthly for the Apify Store category/review sweep — store listings change slowly.
 
 ---
 

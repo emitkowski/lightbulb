@@ -50,6 +50,36 @@ class ApifyService
         return $response->json() ?? [];
     }
 
+    /**
+     * Fetch an actor's public metadata (title, categories, run stats, review stats)
+     * without running it — a plain GET, not billed against Apify usage credits.
+     * Returns an empty array when the token is not configured.
+     *
+     * @return array<string, mixed>
+     */
+    public function getActorInfo(string $actorId): array
+    {
+        $token = config('ingestion.apify.token');
+
+        if (! $token) {
+            return [];
+        }
+
+        $urlSafeActorId = str_replace('/', '~', $actorId);
+
+        $response = Http::timeout(15)
+            ->withQueryParameters(['token' => $token])
+            ->get(self::BASE_URL . "/acts/{$urlSafeActorId}");
+
+        if (! $response->successful()) {
+            throw new RuntimeException(
+                "Apify actor info lookup for {$actorId} returned HTTP {$response->status()}"
+            );
+        }
+
+        return $response->json('data') ?? [];
+    }
+
     public function hasToken(): bool
     {
         return (bool) config('ingestion.apify.token');
